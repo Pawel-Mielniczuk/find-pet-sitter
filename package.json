@@ -9,7 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "format": "prettier --write .",
+    "format": "prettier --write './src/**/*.{js,ts,jsx,tsx}'",
     "lint": "expo lint",
     "type-check": "tsc -b",
     "prepare": "husky && husky install"
