@@ -12,7 +12,8 @@
     "format": "prettier --write './src/**/*.{js,ts,jsx,tsx}'",
     "lint": "expo lint",
     "type-check": "tsc -b",
-    "prepare": "husky && husky install"
+    "prepare": "husky && husky install",
+    "fix-imports": "eslint --fix \"./src/**/*.{js,ts,jsx,tsx}\""
   },
   "jest": {
     "preset": "jest-expo"
