@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# . "$(dirname -- "$0")/_/husky.sh"
+
+# npm test
+# npm run lint && npm run type-check
+
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Sprawdzenie typów
+npm run type-check
+
+# Sprawdzenie lintów
+npm run lint && npm run type-check
