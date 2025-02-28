@@ -1,7 +1,22 @@
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { House, MessageCircle, PawPrint, Search, User2 } from "lucide-react-native";
+import React from "react";
+
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function TabLayout() {
+  const { user, loading } = useAuth();
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/onboarding");
+    }
+  }, [user, loading]);
+
+  if (loading || !user) {
+    return null;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -36,7 +51,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profiles"
+        name="profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => <User2 size={size} color={color} />,
