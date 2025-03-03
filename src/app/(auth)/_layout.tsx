@@ -14,15 +14,15 @@ export default function AuthLayout() {
     );
   }
 
-  if (user) {
-    return <Redirect href={"/(index)"} />;
-  }
+  // if (user) {
+  //   return <Redirect href={"/(index)"} />;
+  // }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="register" />
+      <Stack.Screen name="login-form" />
+      <Stack.Screen name="register-form" />
       <Stack.Screen name="complete-profile" />
     </Stack>
   );
