@@ -86,18 +86,18 @@ export default function OnBoardingScreen() {
   const { user } = useAuth();
   const { width } = useWindowDimensions();
 
-  React.useEffect(() => {
-    if (user) {
-      router.replace("/(index)");
-    }
-  }, [user]);
+  // React.useEffect(() => {
+  //   if (user) {
+  //     router.replace("/(index)");
+  //   }
+  // }, [user]);
 
-  if (user) return null;
+  // if (user) return null;
 
-  if (user) {
-    router.replace("/(index)");
-    return null;
-  }
+  // if (user) {
+  //   router.replace("/(index)");
+  //   return null;
+  // }
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: any[] }) => {
     if (viewableItems[0]) {

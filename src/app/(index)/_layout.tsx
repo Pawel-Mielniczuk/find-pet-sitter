@@ -16,9 +16,9 @@ export default function TabLayout() {
     );
   }
 
-  if (!user) {
-    return <Redirect href={"/(auth)/index"} />;
-  }
+  // if (!user) {
+  //   return <Redirect href={"/(auth)/index"} />;
+  // }
 
   return (
     <Tabs
