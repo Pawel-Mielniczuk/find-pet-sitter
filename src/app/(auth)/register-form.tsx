@@ -1,10 +1,10 @@
+import { Redirect, router } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import React from "react";
 import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,9 +29,52 @@ export default function RegisterScreen() {
     confirmPassword?: string;
   }>({});
 
-  const { signUp, user } = useAuth();
+  const { signUp } = useAuth();
 
-  async function handleRegister() {}
+  function validateForm() {
+    const newErrors: {
+      email?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {};
+
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    if (!confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (password.trim() !== confirmPassword.trim()) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
+  async function handleRegister() {
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      await signUp(email, password, confirmPassword);
+      // router.push("/(auth)/complete-profile");
+      return <Redirect href={"/(auth)/complete-profile"} />;
+    } catch (error: any) {
+      Alert.alert("Registration Failed", error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView style={styles.container}>
