@@ -9,7 +9,7 @@ const api_key = `${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`;
 
 export const supabase = createClient(url, api_key, {
   auth: {
-    storage: AsyncStorage,
+    storage: AsyncStorage, // TODO  Change to expo secure store?
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
