@@ -7,7 +7,7 @@ export default function OnBoardingScreen() {
   const { user } = useAuth();
 
   if (user) {
-    router.replace("/(tabs)");
+    router.replace("/(index)");
     return null;
   }
 
