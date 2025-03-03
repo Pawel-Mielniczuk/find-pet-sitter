@@ -1,7 +1,8 @@
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import React from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 
 import { Button } from "@/src/components/button/Button";
 import { TextInput } from "@/src/components/text-input/TextInput";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function LoginScreen() {
   const [email, setEmail] = React.useState("");
@@ -21,7 +23,50 @@ export default function LoginScreen() {
   const [loading, setLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
 
-  async function handleLogin() {}
+  const { signIn } = useAuth();
+
+  function validateForm() {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
+  async function handleLogin() {
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+
+      if (error) {
+        Alert.alert("Login Failed", error.message);
+      } else {
+        return <Redirect href={"/(index)"} />;
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        Alert.alert("Login Failed", error.message);
+      } else {
+        Alert.alert("Login Failed", "An unknown error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
   return (
     <KeyboardAvoidingView>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
