@@ -1,20 +1,23 @@
-import { router, Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { House, MessageCircle, PawPrint, Search, User2 } from "lucide-react-native";
 import React from "react";
+import { ActivityIndicator, View } from "react-native";
 
 import { useAuth } from "@/src/context/AuthContext";
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
 
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/onboarding");
-    }
-  }, [user, loading]);
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
-  if (loading || !user) {
-    return null;
+  if (!user) {
+    return <Redirect href={"/(auth)/index"} />;
   }
 
   return (
