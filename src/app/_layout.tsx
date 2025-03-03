@@ -1,5 +1,4 @@
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Slot } from "expo-router";
 import React from "react";
 
 import { AuthProvider } from "../context/AuthContext";
@@ -7,12 +6,7 @@ import { AuthProvider } from "../context/AuthContext";
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <StatusBar style="auto" />
-      </Stack>
+      <Slot />
     </AuthProvider>
   );
 }
