@@ -55,7 +55,8 @@ export default function LoginScreen() {
       if (error) {
         Alert.alert("Login Failed", error.message);
       } else {
-        return <Redirect href={"/(index)"} />;
+        // return <Redirect href={"/(index)"} />;
+        router.push("/(index)");
       }
     } catch (error: unknown) {
       if (error instanceof Error) {

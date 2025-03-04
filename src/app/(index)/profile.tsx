@@ -1,4 +1,4 @@
-import { Redirect } from "expo-router";
+import { router } from "expo-router";
 import {
   Bell,
   CircleHelp as HelpCircle,
@@ -44,7 +44,7 @@ export default function ProfilesScreen() {
 
   const handleLogout = async () => {
     await signOut();
-    return <Redirect href={"/(auth)/login-form"} />;
+    router.push("/(auth)/login-form");
   };
 
   function getFullName() {
