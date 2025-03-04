@@ -19,16 +19,22 @@ type AuthContextType = {
   session: Session | null;
   user: ExtendedUser | null;
   loading: boolean;
-  signUp: (email: string, password: string, password_confirmation: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    password_confirmation: string,
+  ) => Promise<{ success: boolean }>;
+
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
-  updateUserProfile: (data: any) => Promise<void>;
+  updateUserProfile: (data: any) => Promise<{ error: any }>;
 };
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null);
+  const [user, setUser] = React.useState<ExtendedUser | null>(null);
   const queryClient = useQueryClient();
 
   const { data: sessionData, isPending: isSessionLoading } = useQuery({
@@ -96,16 +102,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [sessionData, queryClient]);
 
-  const user = React.useMemo<ExtendedUser | null>(() => {
-    if (sessionData?.user && userProfileData) {
-      return {
+  React.useEffect(() => {
+    if (sessionData?.user) {
+      setUser({
         ...sessionData.user,
-        user_role: userProfileData.role || null,
-        first_name: userProfileData.first_name,
-        last_name: userProfileData.last_name,
-      } as ExtendedUser;
+        user_role: userProfileData?.role || null,
+        first_name: userProfileData?.first_name || null,
+        last_name: userProfileData?.last_name || null,
+      });
+    } else {
+      setUser(null);
     }
-    return null;
   }, [sessionData, userProfileData]);
 
   const loading = isSessionLoading || (!!sessionData?.user && isProfileLoading);
@@ -166,23 +173,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ["userProfile", sessionData.user.id] });
       }
     },
+    onError: error => {
+      throw error;
+    },
   });
 
   async function signUp(email: string, password: string, password_confirmation: string) {
-    await signUpMutation.mutateAsync({ email, password, password_confirmation });
+    try {
+      await signUpMutation.mutateAsync({ email, password, password_confirmation });
+      return { success: true };
+    } catch (error: any) {
+      throw error;
+    } finally {
+    }
   }
 
   async function signIn(email: string, password: string) {
-    return await signInMutation.mutateAsync({ email, password });
+    try {
+      const result = await signInMutation.mutateAsync({ email, password });
+      return result;
+    } finally {
+    }
   }
 
   async function signOut() {
-    await signOutMutation.mutateAsync();
+    try {
+      await signOutMutation.mutateAsync();
+    } finally {
+    }
   }
 
-  async function updateUserProfile(data: any) {
-    await updateProfileMutation.mutateAsync(data);
-  }
+  const updateUserProfile = async (data: any) => {
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: user?.id, ...data })
+      .select();
+
+    return { error };
+  };
 
   const value = React.useMemo(
     () => ({

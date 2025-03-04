@@ -1,4 +1,4 @@
-import { Redirect, router } from "expo-router";
+import { router } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import React from "react";
 import {
@@ -67,8 +67,8 @@ export default function RegisterScreen() {
 
     try {
       await signUp(email, password, confirmPassword);
-      // router.push("/(auth)/complete-profile");
-      return <Redirect href={"/(auth)/complete-profile"} />;
+
+      router.push("/(auth)/complete-profile");
     } catch (error: any) {
       Alert.alert("Registration Failed", error.message);
     } finally {

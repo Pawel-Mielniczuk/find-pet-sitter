@@ -1,4 +1,4 @@
-import { Redirect, router } from "expo-router";
+import { router } from "expo-router";
 import { MapPin, Phone, User } from "lucide-react-native";
 import React from "react";
 import {
@@ -31,15 +31,17 @@ export default function CompleteProfileScreen() {
     userType?: string;
   }>({});
 
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, loading: authLoading } = useAuth();
 
   React.useEffect(() => {
-    if (!user) {
+    if (!user && !authLoading) {
       router.replace("/(auth)/login-form");
-    } else {
-      router.replace("/(auth)/complete-profile");
     }
-  }, [user]);
+  }, [user, authLoading]);
+
+  if (authLoading) {
+    return <Text>Ładowanie...</Text>;
+  }
 
   if (!user) {
     return null;
@@ -78,31 +80,33 @@ export default function CompleteProfileScreen() {
     return Object.keys(newErrors).length === 0;
   }
 
-  async function handleCompleteProfile() {
+  const handleCompleteProfile = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      await updateUserProfile({
+      const { error } = await updateUserProfile({
         first_name: firstName,
         last_name: lastName,
         phone_number: phone,
         location: location,
         role: userType,
-        email: user?.email,
+        email: user.email,
         created_at: new Date(),
       });
-    } catch (error: any) {
+
       if (error) {
         Alert.alert("Profile Update Failed", error.message);
       } else {
-        return <Redirect href={"/(index)"} />;
+        router.replace("/(index)");
       }
+    } catch (error: any) {
+      Alert.alert("Profile Update Failed", error.message);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView
