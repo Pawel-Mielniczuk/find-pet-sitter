@@ -1,12 +1,20 @@
-import { Redirect, Tabs } from "expo-router";
-import { House, MessageCircle, PawPrint, Search, User2 } from "lucide-react-native";
+import { Tabs } from "expo-router";
+import {
+  Briefcase,
+  Calendar,
+  House,
+  MessageCircle,
+  PawPrint,
+  Search,
+  User2,
+} from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 
-import { useAuth } from "@/src/context/AuthContext";
+import { useAuth, UserRole } from "@/src/context/AuthContext";
 
 export default function TabLayout() {
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
 
   if (loading) {
     return (
@@ -15,6 +23,9 @@ export default function TabLayout() {
       </View>
     );
   }
+  if (!user) return;
+
+  const isPetSitter = user?.user_role === UserRole.PET_SITTER;
 
   return (
     <Tabs
@@ -37,30 +48,57 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="search-pet-sitter"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
-        }}
+        options={
+          isPetSitter
+            ? { href: null }
+            : {
+                title: "Search",
+                tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+              }
+        }
       />
       <Tabs.Screen
         name="pets"
+        options={
+          isPetSitter
+            ? { href: null }
+            : {
+                title: "My Pets",
+                tabBarIcon: ({ color, size }) => <PawPrint size={size} color={color} />,
+              }
+        }
+      />
+
+      <Tabs.Screen
+        name="messages"
         options={{
-          title: "My Pets",
-          tabBarIcon: ({ color, size }) => <PawPrint size={size} color={color} />,
+          title: "Messages",
+          tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
         }}
+      />
+      <Tabs.Screen
+        name="booking"
+        options={{
+          title: "Bookings",
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="jobs"
+        options={
+          isPetSitter
+            ? {
+                title: "Available Jobs",
+                tabBarIcon: ({ color, size }) => <Briefcase size={size} color={color} />,
+              }
+            : { href: null }
+        }
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
           tabBarIcon: ({ color, size }) => <User2 size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: "Messages",
-          tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
         }}
       />
     </Tabs>
