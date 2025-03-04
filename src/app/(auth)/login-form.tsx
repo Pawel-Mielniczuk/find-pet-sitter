@@ -1,4 +1,4 @@
-import { Redirect, router } from "expo-router";
+import { router } from "expo-router";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import React from "react";
 import {
@@ -55,7 +55,6 @@ export default function LoginScreen() {
       if (error) {
         Alert.alert("Login Failed", error.message);
       } else {
-        // return <Redirect href={"/(index)"} />;
         router.push("/(index)");
       }
     } catch (error: unknown) {

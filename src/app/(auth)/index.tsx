@@ -12,7 +12,6 @@ import {
 
 import { Button } from "../../components/button/Button";
 import { OnboardingSlide } from "../../components/onboarding-slide/onboarding-slide";
-import { useAuth } from "../../context/AuthContext";
 
 const slides = [
   {
@@ -83,21 +82,7 @@ export default function OnBoardingScreen() {
   const [currentIndex, setCurrentIndex] = React.useState<number>(0);
   const slidesRef = React.useRef<FlatList>(null);
   const scrollX = React.useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
   const { width } = useWindowDimensions();
-
-  // React.useEffect(() => {
-  //   if (user) {
-  //     router.replace("/(index)");
-  //   }
-  // }, [user]);
-
-  // if (user) return null;
-
-  // if (user) {
-  //   router.replace("/(index)");
-  //   return null;
-  // }
 
   const handleViewableItemsChanged = ({ viewableItems }: { viewableItems: any[] }) => {
     if (viewableItems[0]) {
