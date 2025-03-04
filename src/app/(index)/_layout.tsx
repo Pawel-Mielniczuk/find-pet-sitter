@@ -6,7 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/src/context/AuthContext";
 
 export default function TabLayout() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -15,10 +15,6 @@ export default function TabLayout() {
       </View>
     );
   }
-
-  // if (!user) {
-  //   return <Redirect href={"/(auth)/index"} />;
-  // }
 
   return (
     <Tabs
