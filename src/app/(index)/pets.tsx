@@ -1,7 +1,5 @@
-import { Link } from "expo-router";
-import { MapPin, Star } from "lucide-react-native";
 import React from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { useAuth } from "../../context/AuthContext";
 
