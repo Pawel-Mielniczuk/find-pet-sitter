@@ -1,6 +1,6 @@
 import { ERROR_MESSAGES } from "./errorMessages";
 
-export type RegisterFormValues = {
+export type LoginFormValues = {
   email: string;
   password: string;
 };
@@ -9,8 +9,8 @@ export const initialValues = {
   email: "",
   password: "",
 };
-export function validateLoginForm(values: RegisterFormValues) {
-  const newErrors: Partial<typeof initialValues> = {};
+export function validateLoginForm(values: LoginFormValues) {
+  const newErrors: Partial<LoginFormValues> = {};
 
   if (!values.email) {
     newErrors.email = ERROR_MESSAGES.REQUIRED;
