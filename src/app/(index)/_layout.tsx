@@ -30,6 +30,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
+        animation: "shift",
         headerShown: false,
         tabBarActiveTintColor: "#7C3AED",
         tabBarInactiveTintColor: "#6B7280",
