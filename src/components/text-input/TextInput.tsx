@@ -40,6 +40,7 @@ export function TextInput({
       >
         {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
         <Input
+          testID="text-input"
           style={[
             styles.input,
             leftIcon ? { paddingLeft: 8 } : null,

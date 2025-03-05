@@ -13,6 +13,7 @@ export function OnboardingSlide({ title, description, image }: OnboardingSlidePr
   return (
     <View style={[styles.container, { width }]}>
       <Image
+        testID="onboarding-image"
         source={{ uri: image }}
         style={[styles.image, { width: width * 0.8, height: width * 0.8 }]}
         resizeMode="cover"

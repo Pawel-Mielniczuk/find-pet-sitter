@@ -91,6 +91,7 @@ export function Button({
 
   return (
     <Pressable
+      testID="button"
       onPress={onPress}
       disabled={disabled || loading}
       style={[
