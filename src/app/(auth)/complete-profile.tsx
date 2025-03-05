@@ -12,26 +12,24 @@ import {
   View,
 } from "react-native";
 
+import {
+  initialValues,
+  validateCompleteProfileForm,
+} from "@/src/formValidations/completeProfileForm";
+import { useForm } from "@/src/hooks/useForm";
+
 import { Button } from "../../components/button/Button";
 import { TextInput } from "../../components/text-input/TextInput";
 import { useAuth } from "../../context/AuthContext";
 
 export default function CompleteProfileScreen() {
-  const [firstName, setFirstName] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [location, setLocation] = React.useState("");
-  const [userType, setUserType] = React.useState<"pet_owner" | "pet_sitter" | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const [errors, setErrors] = React.useState<{
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    location?: string;
-    userType?: string;
-  }>({});
 
   const { user, updateUserProfile, loading: authLoading } = useAuth();
+  const { inputs, errors, handleChange } = useForm({
+    initialValues,
+    validate: validateCompleteProfileForm,
+  });
 
   React.useEffect(() => {
     if (!user && !authLoading) {
@@ -47,52 +45,19 @@ export default function CompleteProfileScreen() {
     return null;
   }
 
-  function validateForm() {
-    const newErrors: {
-      firstName?: string;
-      lastName?: string;
-      phone?: string;
-      location?: string;
-      userType?: string;
-    } = {};
-
-    if (!firstName) {
-      newErrors.firstName = "First name is required";
-    }
-
-    if (!lastName) {
-      newErrors.lastName = "Last name is required";
-    }
-
-    if (!phone) {
-      newErrors.phone = "Phone number is required";
-    }
-
-    if (!location) {
-      newErrors.location = "Location is required";
-    }
-
-    if (!userType) {
-      newErrors.userType = "Please select your role";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  const handleCompleteProfile = async () => {
-    if (!validateForm()) return;
+  async function handleCompleteProfile() {
+    if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
 
     try {
       const { error } = await updateUserProfile({
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phone,
-        location: location,
-        role: userType,
-        email: user.email,
+        first_name: inputs.firstName,
+        last_name: inputs.lastName,
+        phone_number: inputs.phone,
+        location: inputs.location,
+        role: inputs.userType,
+        email: user?.email,
         created_at: new Date(),
       });
 
@@ -106,7 +71,7 @@ export default function CompleteProfileScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <KeyboardAvoidingView
@@ -124,8 +89,8 @@ export default function CompleteProfileScreen() {
           <TextInput
             label="First Name"
             placeholder="Enter your first name"
-            value={firstName}
-            onChangeText={setFirstName}
+            value={inputs.firstName}
+            onChangeText={value => handleChange("firstName", value)}
             error={errors.firstName}
             leftIcon={<User size={20} color="#6B7280" />}
           />
@@ -133,8 +98,8 @@ export default function CompleteProfileScreen() {
           <TextInput
             label="Last Name"
             placeholder="Enter your last name"
-            value={lastName}
-            onChangeText={setLastName}
+            value={inputs.lastName}
+            onChangeText={value => handleChange("lastName", value)}
             error={errors.lastName}
             leftIcon={<User size={20} color="#6B7280" />}
           />
@@ -143,8 +108,8 @@ export default function CompleteProfileScreen() {
             label="Phone Number"
             placeholder="Enter your phone number"
             keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
+            value={inputs.phone}
+            onChangeText={value => handleChange("phone", value)}
             error={errors.phone}
             leftIcon={<Phone size={20} color="#6B7280" />}
           />
@@ -152,8 +117,8 @@ export default function CompleteProfileScreen() {
           <TextInput
             label="Location"
             placeholder="City, State"
-            value={location}
-            onChangeText={setLocation}
+            value={inputs.location}
+            onChangeText={value => handleChange("location", value)}
             error={errors.location}
             leftIcon={<MapPin size={20} color="#6B7280" />}
           />
@@ -163,19 +128,29 @@ export default function CompleteProfileScreen() {
 
           <View style={styles.roleContainer}>
             <TouchableOpacity
-              style={[styles.roleButton, userType === "pet_owner" && styles.roleButtonActive]}
-              onPress={() => setUserType("pet_owner")}
+              style={[
+                styles.roleButton,
+                inputs.userType === "pet_owner" && styles.roleButtonActive,
+              ]}
+              onPress={() => handleChange("userType", "pet_owner")}
             >
-              <Text style={[styles.roleText, userType === "pet_owner" && styles.roleTextActive]}>
+              <Text
+                style={[styles.roleText, inputs.userType === "pet_owner" && styles.roleTextActive]}
+              >
                 Pet Owner
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.roleButton, userType === "pet_sitter" && styles.roleButtonActive]}
-              onPress={() => setUserType("pet_sitter")}
+              style={[
+                styles.roleButton,
+                inputs.userType === "pet_sitter" && styles.roleButtonActive,
+              ]}
+              onPress={() => handleChange("userType", "pet_sitter")}
             >
-              <Text style={[styles.roleText, userType === "pet_sitter" && styles.roleTextActive]}>
+              <Text
+                style={[styles.roleText, inputs.userType === "pet_sitter" && styles.roleTextActive]}
+              >
                 Pet Sitter
               </Text>
             </TouchableOpacity>

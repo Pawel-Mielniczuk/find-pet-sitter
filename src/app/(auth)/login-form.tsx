@@ -15,42 +15,26 @@ import {
 import { Button } from "@/src/components/button/Button";
 import { TextInput } from "@/src/components/text-input/TextInput";
 import { useAuth } from "@/src/context/AuthContext";
+import { initialValues, validateLoginForm } from "@/src/formValidations/loginForm";
+import { useForm } from "@/src/hooks/useForm";
 
 export default function LoginScreen() {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
-  const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
 
   const { signIn } = useAuth();
-
-  function validateForm() {
-    const newErrors: { email?: string; password?: string } = {};
-
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
+  const { inputs, errors, handleChange } = useForm({
+    initialValues,
+    validate: validateLoginForm,
+  });
 
   async function handleLogin() {
-    if (!validateForm()) return;
+    if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(inputs.email, inputs.password);
 
       if (error) {
         Alert.alert("Login Failed", error.message);
@@ -86,8 +70,8 @@ export default function LoginScreen() {
             placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
+            value={inputs.email}
+            onChangeText={value => handleChange("email", value)}
             error={errors.email}
             leftIcon={<Mail size={20} color="#6B7280" />}
           />
@@ -95,8 +79,8 @@ export default function LoginScreen() {
             label="Password"
             placeholder="Enter your password"
             secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
+            value={inputs.password}
+            onChangeText={value => handleChange("password", value)}
             error={errors.password}
             leftIcon={<Lock size={20} color="#6B7280" />}
             rightIcon={

@@ -15,58 +15,27 @@ import {
 import { Button } from "@/src/components/button/Button";
 import { TextInput } from "@/src/components/text-input/TextInput";
 import { useAuth } from "@/src/context/AuthContext";
+import { initialValues, validateRegisterForm } from "@/src/formValidations/registerForm";
+import { useForm } from "@/src/hooks/useForm";
 
 export default function RegisterScreen() {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [confirmPassword, setConfirmPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
-  const [errors, setErrors] = React.useState<{
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-  }>({});
 
   const { signUp } = useAuth();
-
-  function validateForm() {
-    const newErrors: {
-      email?: string;
-      password?: string;
-      confirmPassword?: string;
-    } = {};
-
-    if (!email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!password) {
-      newErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (!confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (password.trim() !== confirmPassword.trim()) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
+  const { inputs, errors, handleChange } = useForm({
+    initialValues,
+    validate: validateRegisterForm,
+  });
 
   async function handleRegister() {
-    if (!validateForm()) return;
+    if (Object.keys(errors).length > 0) return;
 
     setLoading(true);
 
     try {
-      await signUp(email, password, confirmPassword);
+      await signUp(inputs.email, inputs.password, inputs.confirmPassword);
 
       router.push("/(auth)/complete-profile");
     } catch (error: any) {
@@ -96,8 +65,8 @@ export default function RegisterScreen() {
             placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
+            value={inputs.email}
+            onChangeText={value => handleChange("email", value)}
             error={errors.email}
             leftIcon={<Mail size={20} color="#6B7280" />}
           />
@@ -106,8 +75,8 @@ export default function RegisterScreen() {
             label="Password"
             placeholder="Create a password"
             secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
+            value={inputs.password}
+            onChangeText={value => handleChange("password", value)}
             error={errors.password}
             leftIcon={<Lock size={20} color="#6B7280" />}
             rightIcon={
@@ -124,8 +93,8 @@ export default function RegisterScreen() {
             label="Confirm Password"
             placeholder="Confirm your password"
             secureTextEntry={!showConfirmPassword}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            value={inputs.confirmPassword}
+            onChangeText={value => handleChange("confirmPassword", value)}
             error={errors.confirmPassword}
             leftIcon={<Lock size={20} color="#6B7280" />}
             rightIcon={
