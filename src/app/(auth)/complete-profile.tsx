@@ -40,7 +40,7 @@ export default function CompleteProfileScreen() {
   }, [user, authLoading]);
 
   if (authLoading) {
-    return <Text>Ładowanie...</Text>;
+    return <Text>Loading...</Text>;
   }
 
   if (!user) {
