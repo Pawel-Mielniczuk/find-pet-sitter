@@ -131,12 +131,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Passwords do not match");
       }
 
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+        return { success: true, user: data.user };
+      } catch (error: any) {
+        throw error;
+      }
     },
   });
 

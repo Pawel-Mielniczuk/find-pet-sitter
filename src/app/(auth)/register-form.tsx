@@ -36,7 +36,6 @@ export default function RegisterScreen() {
 
     try {
       await signUp(inputs.email, inputs.password, inputs.confirmPassword);
-
       router.push("/(auth)/complete-profile");
     } catch (error: any) {
       Alert.alert("Registration Failed", error.message);
