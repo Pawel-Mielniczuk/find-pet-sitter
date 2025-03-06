@@ -102,6 +102,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User2 size={size} color={color} />,
         }}
       />
+      <Tabs.Screen name="pet/[id]" options={{ href: null }} />
+      <Tabs.Screen name="pet/edit/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
