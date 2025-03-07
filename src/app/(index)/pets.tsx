@@ -1,6 +1,7 @@
 import { LegendList } from "@legendapp/list";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { Link, router } from "expo-router";
 import { Camera, ChevronDown, PawPrint, Plus, X } from "lucide-react-native";
 import React from "react";
 import {
@@ -22,13 +23,12 @@ import { PetModal } from "../../components/pet-modal/pet-modal";
 import { TextInput } from "../../components/text-input/TextInput";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import { queryClient } from "../_layout";
 
 const PET_TYPES = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Fish", "Reptile", "Exotic", "Other"];
 
 export default function PetsScreen() {
   const { user } = useAuth();
-  const [pets, setPets] = React.useState<Pet[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [modalVisible, setModalVisible] = React.useState(false);
   const [typeModalVisible, setTypeModalVisible] = React.useState(false);
   const [newPet, setNewPet] = React.useState<NewPet>({
@@ -49,18 +49,16 @@ export default function PetsScreen() {
     age?: string;
     custom_type?: string;
   }>({});
-  const [addingPet, setAddingPet] = React.useState(false);
-  const params = useLocalSearchParams();
 
-  React.useEffect(() => {
-    if (user) {
-      fetchPets();
-    }
-  }, [user]);
+  const petsQueryKey = ["pets", user?.id];
 
-  const fetchPets = async () => {
-    try {
-      setLoading(true);
+  const {
+    data: pets = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: petsQueryKey,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("pets")
         .select("*")
@@ -68,16 +66,52 @@ export default function PetsScreen() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        Alert.alert("Error", "Failed to load your pets. Please try again.");
-      } else {
-        setPets(data || []);
+        throw new Error("Failed to load your pets");
       }
-    } catch (error) {
-      Alert.alert("Error", "Failed to load your pets. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const addPetMutation = useMutation({
+    mutationFn: async (petData: NewPet) => {
+      const { data, error } = await supabase.from("pets").insert([petData]).select();
+
+      if (error) {
+        throw new Error("Failed to add pet");
+      }
+
+      return data;
+    },
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ["pets", user?.id] });
+
+      setNewPet({
+        name: "",
+        type: "",
+        breed: "",
+        age: "",
+        image:
+          "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+        weight: "",
+        special_instructions: "",
+        custom_type: "",
+      });
+
+      setModalVisible(false);
+
+      if (data && data.length > 0) {
+        router.push({
+          pathname: "/pet/[id]",
+          params: { id: data[0].id, petData: JSON.stringify(data[0]) },
+        });
+      }
+    },
+    onError: error => {
+      Alert.alert("Error", "Failed to add pet. Please try again.");
+    },
+  });
 
   const validateForm = () => {
     const newErrors: {
@@ -96,7 +130,7 @@ export default function PetsScreen() {
       newErrors.type = "Pet type is required";
     }
 
-    if (newPet.type === "Other" && !newPet.custom_type.trim()) {
+    if (newPet.type === "Other" && !newPet.custom_type?.trim()) {
       newErrors.custom_type = "Please specify your pet type";
     }
 
@@ -112,60 +146,31 @@ export default function PetsScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddPet = async () => {
+  async function handleAddPet() {
     if (!validateForm()) return;
 
-    try {
-      setAddingPet(true);
-
-      const petData: Partial<Pet> = {
-        name: newPet.name,
-        type: newPet.type === "Other" ? newPet.custom_type : newPet.type,
-        breed: newPet.breed,
-        age: newPet.age,
-        image: newPet.image,
-        owner_id: user?.id,
-        special_instructions: newPet.special_instructions || null,
-        custom_type: newPet.type === "Other" ? newPet.custom_type : null,
-      };
-
-      if (newPet.type === "Dog" && newPet.weight) {
-        petData.weight = newPet.weight;
-      }
-
-      const { data, error } = await supabase.from("pets").insert([petData]).select();
-
-      if (error) {
-        Alert.alert("Error", "Failed to add pet. Please try again.");
-      } else {
-        setNewPet({
-          name: "",
-          type: "",
-          breed: "",
-          age: "",
-          image:
-            "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-          weight: "",
-          special_instructions: "",
-          custom_type: "",
-        });
-        setModalVisible(false);
-
-        if (data && data.length > 0) {
-          router.push({
-            pathname: "/pet/[id]",
-            params: { id: data[0].id },
-          });
-        } else {
-          fetchPets();
-        }
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to add pet. Please try again.");
-    } finally {
-      setAddingPet(false);
+    if (!user?.id) {
+      throw new Error("User ID is required");
     }
-  };
+
+    const petData: Omit<NewPet, "owner_id"> & { owner_id: string } = {
+      name: newPet.name,
+      type: newPet.type === "Other" ? newPet.custom_type || "Unknown" : newPet.type,
+      breed: newPet.breed,
+      age: newPet.age,
+      image: newPet.image,
+      owner_id: user?.id,
+      special_instructions: newPet.special_instructions || null,
+      custom_type: newPet.type === "Other" ? newPet.custom_type : null,
+      weight: newPet.weight ? newPet.weight : undefined,
+    };
+
+    if (newPet.type === "Dog" && newPet.weight) {
+      petData.weight = newPet.weight;
+    }
+
+    addPetMutation.mutate(petData);
+  }
 
   const selectPetType = (type: string) => {
     setNewPet({ ...newPet, type });
@@ -213,7 +218,7 @@ export default function PetsScreen() {
         </Pressable>
       </View>
 
-      {loading ? (
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#7C3AED" />
           <Text style={styles.loadingText}>Loading your pets...</Text>
@@ -313,7 +318,7 @@ export default function PetsScreen() {
                 <TextInput
                   label="Specify Pet Type"
                   placeholder="E.g., Ferret, Mantis, Hedgehog"
-                  value={newPet.custom_type}
+                  value={newPet.custom_type ?? ""}
                   onChangeText={text => setNewPet({ ...newPet, custom_type: text })}
                   error={errors.custom_type}
                 />
@@ -334,6 +339,7 @@ export default function PetsScreen() {
                 onChangeText={text => setNewPet({ ...newPet, age: text })}
                 error={errors.age}
                 keyboardType="number-pad"
+                maxLength={2}
               />
 
               {newPet.type === "Dog" && (
@@ -343,13 +349,14 @@ export default function PetsScreen() {
                   keyboardType="numeric"
                   value={newPet.weight}
                   onChangeText={text => setNewPet({ ...newPet, weight: text })}
+                  maxLength={2}
                 />
               )}
 
               <TextInput
                 label="Special Instructions (Optional)"
                 placeholder="Any special care instructions for your pet"
-                value={newPet.special_instructions}
+                value={newPet.special_instructions ?? ""}
                 onChangeText={text => setNewPet({ ...newPet, special_instructions: text })}
                 multiline={true}
                 numberOfLines={3}
@@ -358,7 +365,7 @@ export default function PetsScreen() {
                 style={styles.textArea}
               />
 
-              <Button onPress={handleAddPet} loading={addingPet} style={styles.addPetButton}>
+              <Button onPress={handleAddPet} loading={isLoading} style={styles.addPetButton}>
                 Add Pet
               </Button>
             </ScrollView>

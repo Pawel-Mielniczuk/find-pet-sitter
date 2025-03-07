@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import {
@@ -24,17 +25,59 @@ import { Pet } from "@/src/lib/schemas";
 
 import { useAuth } from "../../../context/AuthContext";
 import { supabase } from "../../../lib/supabase";
+import { queryClient } from "../../_layout";
 
 export default function PetDetailsScreen() {
-  const { petData, id } = useLocalSearchParams();
   const { loading: authLoading, user } = useAuth();
-  // const pet = petData ? JSON.parse(decodeURIComponent(petData)) : null;
-  const pet = petData
-    ? JSON.parse(decodeURIComponent(Array.isArray(petData) ? petData[0] : petData))
-    : null;
-  // const [pet, setPet] = useState<Pet | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const { id } = useLocalSearchParams();
+
   const [deleting, setDeleting] = React.useState(false);
+
+  const {
+    data: pet,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["pet", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pets")
+        .select("*")
+        .eq("id", id)
+        .eq("owner_id", user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user,
+  });
+
+  const deletePetMutation = useMutation({
+    mutationFn: async () => {
+      if (!pet) return;
+
+      const { error } = await supabase
+        .from("pets")
+        .delete()
+        .eq("id", pet.id)
+        .eq("owner_id", user?.id);
+
+      if (error) {
+        throw new Error("Failed to delete pet");
+      }
+    },
+    onSuccess: () => {
+      setDeleting(false);
+      queryClient.invalidateQueries({ queryKey: ["pets", user?.id] });
+      Alert.alert("Success", `${pet.name} has been deleted.`);
+      router.replace("/(index)/pets");
+    },
+    onError: error => {
+      setDeleting(false);
+      Alert.alert("Error", "Failed to delete pet. Please try again.");
+    },
+  });
 
   if (authLoading) {
     return (
@@ -54,37 +97,25 @@ export default function PetDetailsScreen() {
       {
         text: "Delete",
         style: "destructive",
-        onPress: deletePet,
+        onPress: () => {
+          setDeleting(true);
+          deletePetMutation.mutate();
+        },
       },
     ]);
   }
 
-  const deletePet = async () => {
-    if (!pet) return;
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7C3AED" />
+        <Text style={styles.loadingText}>Loading pet details...</Text>
+      </View>
+    );
+  }
 
-    try {
-      setDeleting(true);
-      const { error } = await supabase
-        .from("pets")
-        .delete()
-        .eq("id", pet.id)
-        .eq("owner_id", user?.id);
-
-      if (error) {
-        Alert.alert("Error", "Failed to delete pet. Please try again.");
-      } else {
-        Alert.alert("Success", `${pet.name} has been deleted.`);
-        router.replace("/(index)/pets");
-      }
-    } catch (error) {
-      Alert.alert("Error", "Failed to delete pet. Please try again.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-  function formatDate() {}
-
-  if (!pet) {
+  // Show error state
+  if (isError || !pet) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Pet not found</Text>
