@@ -16,13 +16,13 @@ export const petSchema = z.object({
 
 export const newPetSchema = z.object({
   name: z.string().default(""),
-  type: z.string().default(""),
+  type: z.string().min(1, "Pet type is required").default(""),
   breed: z.string().default(""),
   age: z.string().default(""),
   image: z.string().url().default(""),
-  weight: z.string().default(""),
-  special_instructions: z.string().default(""),
-  custom_type: z.string().default(""),
+  weight: z.string().default("").optional(),
+  special_instructions: z.string().nullable().default(""),
+  custom_type: z.string().nullable().default(""),
 });
 
 export type NewPet = z.infer<typeof newPetSchema>;
