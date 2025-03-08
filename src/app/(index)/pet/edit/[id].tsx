@@ -1,155 +1,39 @@
-import { useMutation } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Camera, ChevronDown } from "lucide-react-native";
 import React from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { queryClient } from "@/src/app/_layout";
 import { Button } from "@/src/components/button/Button";
-import { PetModal } from "@/src/components/pet-modal/pet-modal";
+import { PetTypeModal } from "@/src/components/pet-type-modal/pet-type-modal";
 import { TextInput } from "@/src/components/text-input/TextInput";
-import { NewPet } from "@/src/lib/schemas";
-import { supabase } from "@/src/lib/supabase";
-
-import { useAuth } from "../../../../context/AuthContext";
+import { usePets } from "@/src/context/PetsContext";
 
 const PET_TYPES = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Fish", "Reptile", "Exotic", "Other"];
 
 export default function EditPetScreen() {
   const { petData, id } = useLocalSearchParams();
-  const { user } = useAuth();
 
-  const initialPetData = petData
-    ? JSON.parse(decodeURIComponent(Array.isArray(petData) ? petData[0] : petData))
-    : null;
-  const [typeModalVisible, setTypeModalVisible] = React.useState(false);
-  const [petForm, setPetForm] = React.useState({
-    name: initialPetData?.name || "",
-    type: initialPetData?.custom_type ? "Other" : initialPetData?.type || "",
-    breed: initialPetData?.breed || "",
-    age: initialPetData?.age || "",
-    image: initialPetData?.image || "",
-    weight: initialPetData?.weight || "",
-    special_instructions: initialPetData?.special_instructions || "",
-    custom_type: initialPetData?.custom_type || "",
-  });
+  const {
+    petForm,
+    setPetForm,
+    typeModalVisible,
+    setTypeModalVisible,
+    errors,
+    handleUpdatePet,
+    isUpdating,
+    initializePetForm,
+    selectPetType,
+  } = usePets();
 
-  const [errors, setErrors] = React.useState<{
-    name?: string;
-    type?: string;
-    breed?: string;
-    age?: string;
-    custom_type?: string;
-  }>({});
+  React.useEffect(() => {
+    const initialPetData = petData
+      ? JSON.parse(decodeURIComponent(Array.isArray(petData) ? petData[0] : petData))
+      : null;
 
-  const updatePetMutation = useMutation({
-    mutationFn: async (petData: any) => {
-      const { error } = await supabase
-        .from("pets")
-        .update(petData)
-        .eq("id", id)
-        .eq("owner_id", user?.id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-      return true;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pets"] });
-      queryClient.invalidateQueries({ queryKey: ["pet", id] });
-
-      Alert.alert("Success", "Pet updated successfully");
-
-      router.push(`/(index)/pet/${id}`);
-    },
-    onError: error => {
-      Alert.alert("Error", `Failed to update pet: ${error.message}`);
-    },
-  });
-
-  function validateForm() {
-    const newErrors: {
-      name?: string;
-      type?: string;
-      breed?: string;
-      age?: string;
-      custom_type?: string;
-    } = {};
-
-    if (!petForm.name.trim()) {
-      newErrors.name = "Pet name is required";
+    if (initialPetData) {
+      initializePetForm(initialPetData);
     }
-
-    if (!petForm.type) {
-      newErrors.type = "Pet type is required";
-    }
-
-    if (petForm.type === "Other" && !petForm.custom_type.trim()) {
-      newErrors.custom_type = "Please specify your pet type";
-    }
-
-    if (!petForm.breed.trim()) {
-      newErrors.breed = "Breed is required";
-    }
-
-    if (!petForm.age.trim()) {
-      newErrors.age = "Age is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
-  async function handleSave() {
-    if (!validateForm() || !id) return;
-
-    const petData: NewPet = {
-      name: petForm.name,
-      type: petForm.type === "Other" ? petForm.type : petForm.type,
-      breed: petForm.breed,
-      age: petForm.age,
-      image: petForm.image,
-      special_instructions: petForm.special_instructions || null,
-      custom_type: petForm.type === "Other" ? petForm.custom_type : null,
-    };
-
-    if (petForm.type === "Dog" && petForm.weight) {
-      petData.weight = petForm.weight;
-    } else {
-      petData.weight = "";
-    }
-
-    updatePetMutation.mutate(petData);
-  }
-  const selectPetType = (type: string) => {
-    setPetForm({ ...petForm, type });
-    setTypeModalVisible(false);
-
-    if (type !== petForm.type) {
-      setPetForm(prev => ({
-        ...prev,
-        type,
-        image: getPetImageByType(type),
-      }));
-    }
-  };
-
-  const getPetImageByType = (type: string) => {
-    const images = {
-      Dog: "https://images.unsplash.com/photo-1552053831-71594a27632d",
-      Cat: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba",
-      Bird: "https://images.unsplash.com/photo-1522926193341-e9ffd686c60f",
-      Rabbit: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308",
-      Hamster: "https://images.unsplash.com/photo-1425082661705-1834bfd09dca",
-      Fish: "https://images.unsplash.com/photo-1522069169874-c58ec4b76be5",
-      Reptile: "https://images.unsplash.com/photo-1504450874802-0ba2bcd9b5ae",
-      Exotic: "https://images.unsplash.com/photo-1515536765-9b2a70c4b333",
-      Other: "https://images.unsplash.com/photo-1543466835-00a7907e9de1",
-    };
-
-    return images[type as keyof typeof images] || images["Other"];
-  };
+  }, [petData, initializePetForm]);
 
   return (
     <View style={styles.container}>
@@ -242,8 +126,8 @@ export default function EditPetScreen() {
 
           <View style={styles.buttonContainer}>
             <Button
-              onPress={handleSave}
-              loading={updatePetMutation.isPending}
+              onPress={() => handleUpdatePet(id as string)}
+              loading={isUpdating}
               style={styles.saveButton}
             >
               Save Changes
@@ -255,7 +139,7 @@ export default function EditPetScreen() {
         </View>
       </ScrollView>
 
-      <PetModal
+      <PetTypeModal
         visible={typeModalVisible}
         onClose={() => setTypeModalVisible(false)}
         onSelectType={selectPetType}
