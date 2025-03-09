@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { Link } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Pet } from "../../lib/schemas";
+import { Pet } from "../../lib/types";
 
 type PetsListProps = {
   pets: Pet[];

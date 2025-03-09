@@ -5,11 +5,10 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { AddPetModal } from "@/src/components/add-pet-modal/add-pet-modal";
 import { PetsList } from "@/src/components/pets-list/pets-list";
 import { usePets } from "@/src/context/PetsContext";
+import { PET_TYPES } from "@/src/lib/types";
 
 import { Button } from "../../components/button/Button";
 import { PetTypeModal } from "../../components/pet-type-modal/pet-type-modal";
-
-const PET_TYPES = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Fish", "Reptile", "Exotic", "Other"];
 
 export default function PetsScreen() {
   const {
@@ -60,7 +59,7 @@ export default function PetsScreen() {
         visible={typeModalVisible}
         onClose={() => setTypeModalVisible(false)}
         onSelectType={selectPetType}
-        petTypes={PET_TYPES}
+        petTypes={Object.values(PET_TYPES)}
       />
     </View>
   );

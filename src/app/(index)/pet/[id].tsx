@@ -6,7 +6,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "rea
 
 import { PetCard } from "@/src/components/pet-card/pet-card";
 import { usePets } from "@/src/context/PetsContext";
-import { Pet } from "@/src/lib/schemas";
+import { Pet } from "@/src/lib/types";
 
 import { useAuth } from "../../../context/AuthContext";
 import { supabase } from "../../../lib/supabase";

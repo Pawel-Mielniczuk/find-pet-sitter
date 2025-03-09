@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { Calendar, FileText, PawPrint, Weight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { Pet } from "../../lib/schemas";
+import { Pet } from "../../lib/types";
 
 type PetCardProps = {
   pet: Pet;

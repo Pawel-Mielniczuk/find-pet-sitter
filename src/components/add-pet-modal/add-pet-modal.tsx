@@ -2,6 +2,8 @@ import { Image } from "expo-image";
 import { Camera, ChevronDown, X } from "lucide-react-native";
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { PET_TYPES } from "@/src/lib/types";
+
 import { TextInput } from "../../components/text-input/TextInput";
 import { usePets } from "../../context/PetsContext";
 import { Button } from "../button/Button";
@@ -91,13 +93,19 @@ export function AddPetModal() {
               maxLength={2}
             />
 
-            {newPet.type === "Dog" && (
+            {newPet.type === PET_TYPES.Dog && (
               <TextInput
                 label="Weight (kg)"
                 placeholder="Enter your dog's weight"
                 keyboardType="numeric"
-                value={newPet.weight}
-                onChangeText={text => setNewPet({ ...newPet, weight: text })}
+                value={newPet.weight !== null ? newPet.weight.toString() : ""}
+                onChangeText={text => {
+                  const weightNum = text ? parseFloat(text) : null;
+                  setNewPet({
+                    ...newPet,
+                    weight: !isNaN(weightNum as number) && weightNum! > 0 ? weightNum : null,
+                  });
+                }}
                 maxLength={2}
               />
             )}

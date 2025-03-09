@@ -7,8 +7,7 @@ import { Button } from "@/src/components/button/Button";
 import { PetTypeModal } from "@/src/components/pet-type-modal/pet-type-modal";
 import { TextInput } from "@/src/components/text-input/TextInput";
 import { usePets } from "@/src/context/PetsContext";
-
-const PET_TYPES = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Fish", "Reptile", "Exotic", "Other"];
+import { PET_TYPES } from "@/src/lib/types";
 
 export default function EditPetScreen() {
   const { petData, id } = useLocalSearchParams();
@@ -33,7 +32,7 @@ export default function EditPetScreen() {
     if (initialPetData) {
       initializePetForm(initialPetData);
     }
-  }, [petData, initializePetForm]);
+  }, [petData]);
 
   return (
     <View style={styles.container}>
@@ -98,6 +97,8 @@ export default function EditPetScreen() {
             label="Age"
             placeholder="Enter your pet's age (e.g., 2 years)"
             value={petForm.age}
+            keyboardType="number-pad"
+            maxLength={2}
             onChangeText={text => setPetForm({ ...petForm, age: text })}
             error={errors.age}
           />
@@ -143,7 +144,7 @@ export default function EditPetScreen() {
         visible={typeModalVisible}
         onClose={() => setTypeModalVisible(false)}
         onSelectType={selectPetType}
-        petTypes={PET_TYPES}
+        petTypes={Object.values(PET_TYPES)}
       />
     </View>
   );
