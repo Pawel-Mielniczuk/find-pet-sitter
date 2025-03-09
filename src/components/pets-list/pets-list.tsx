@@ -31,18 +31,39 @@ export function PetsList({ pets }: PetsListProps) {
               petData: JSON.stringify(pet),
             },
           }}
+          testID={`pet-card-${pet.id}`}
         >
-          <Image source={{ uri: pet.image }} style={styles.petImage} />
+          <Image
+            source={{ uri: pet.image }}
+            style={styles.petImage}
+            testID={`pet-image-${pet.id}`}
+          />
           <View style={styles.petInfo}>
-            <Text style={styles.petName}>{pet.name}</Text>
-            <Text style={styles.petBreed}>{pet.breed}</Text>
+            <Text style={styles.petName} testID={`pet-name-${pet.id}`}>
+              {pet.name}
+            </Text>
+            <Text style={styles.petBreed} testID={`pet-breed-${pet.id}`}>
+              {pet.breed}
+            </Text>
             <View style={styles.petDetails}>
-              <Text style={styles.petType}>{formatPetType(pet)}</Text>
-              <Text style={styles.petAge}>{pet.age}</Text>
+              <Text style={styles.petType} testID={`pet-type-${pet.id}`}>
+                {formatPetType(pet)}
+              </Text>
+              <Text style={styles.petAge} testID={`pet-age-${pet.id}`}>
+                {pet.age}
+              </Text>
             </View>
-            {pet.weight && <Text style={styles.petWeight}>Weight: {pet.weight}</Text>}
+            {pet.weight && (
+              <Text style={styles.petWeight} testID={`pet-weight-${pet.id}`}>
+                Weight: {pet.weight}
+              </Text>
+            )}
             {pet.special_instructions && (
-              <Text style={styles.specialInstructions} numberOfLines={2}>
+              <Text
+                style={styles.specialInstructions}
+                numberOfLines={2}
+                testID={`pet-special-instructions-${pet.id}`}
+              >
                 Note: {pet.special_instructions}
               </Text>
             )}

@@ -11,7 +11,7 @@ interface PetTypeModalProps {
 export function PetTypeModal({ visible, onClose, onSelectType, petTypes }: PetTypeModalProps) {
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} testID="overlay">
         <View style={styles.content}>
           <Text style={styles.title}>Select Pet Type</Text>
           <FlatList

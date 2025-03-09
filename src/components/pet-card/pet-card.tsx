@@ -11,7 +11,12 @@ type PetCardProps = {
 export function PetCard({ pet }: PetCardProps) {
   return (
     <ScrollView style={styles.content}>
-      <Image source={{ uri: pet.image }} style={styles.petImage} contentFit="cover" />
+      <Image
+        source={{ uri: pet.image }}
+        style={styles.petImage}
+        contentFit="cover"
+        testID="image"
+      />
 
       <View style={styles.petInfo}>
         <View style={styles.nameSection}>
@@ -24,14 +29,14 @@ export function PetCard({ pet }: PetCardProps) {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoItem}>
-              <PawPrint size={20} color="#6B7280" />
+              <PawPrint size={20} color="#6B7280" testID="paw-print" />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Breed</Text>
                 <Text style={styles.infoValue}>{pet.breed}</Text>
               </View>
             </View>
             <View style={styles.infoItem}>
-              <Calendar size={20} color="#6B7280" />
+              <Calendar size={20} color="#6B7280" testID="calendar" />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Age</Text>
                 <Text style={styles.infoValue}>{pet.age}</Text>
@@ -42,14 +47,14 @@ export function PetCard({ pet }: PetCardProps) {
           {pet.weight && (
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
-                <Weight size={20} color="#6B7280" />
+                <Weight size={20} color="#6B7280" testID="weight" />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Weight</Text>
                   <Text style={styles.infoValue}>{pet.weight} kg</Text>
                 </View>
               </View>
               <View style={styles.infoItem}>
-                <Calendar size={20} color="#6B7280" />
+                <Calendar size={20} color="#6B7280" testID="calendar-added" />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Added On</Text>
                   {/* <Text style={styles.infoValue}>{formatDate(pet.created_at)}</Text> */}
@@ -62,7 +67,7 @@ export function PetCard({ pet }: PetCardProps) {
         {pet.special_instructions && (
           <View style={styles.instructionsCard}>
             <View style={styles.instructionsHeader}>
-              <FileText size={20} color="#6B7280" />
+              <FileText size={20} color="#6B7280" testID="file-text" />
               <Text style={styles.instructionsTitle}>Special Instructions</Text>
             </View>
             <Text style={styles.instructionsText}>{pet.special_instructions}</Text>
