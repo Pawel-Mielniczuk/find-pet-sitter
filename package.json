@@ -31,7 +31,9 @@
       "!**/babel.config.js",
       "!**/expo-env.d.ts",
       "!**/.expo/**",
-      "!src/lib/supabase.ts"
+      "!src/lib/supabase.ts",
+      "!src/lib/queryClient.ts",
+      "!src/lib/constants.ts"
     ]
   },
   "config": {
