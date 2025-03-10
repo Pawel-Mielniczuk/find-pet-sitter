@@ -62,3 +62,24 @@ export async function deletePet(petId: string, userId: string): Promise<void> {
     throw new Error(`Failed to delete pet: ${error.message}`);
   }
 }
+
+export async function fetchPetSitters(city: string) {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, role, location, bio, avatar_url")
+      .eq("role", "pet_sitter")
+      .eq("location", city);
+
+    if (error) {
+      throw new Error(`Error fetching pet sitters: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error: any) {
+    if (error instanceof Error) {
+      throw new Error(`Error fetching pet sitters: ${error.message}`);
+    }
+    throw new Error("Unexpected error occurred while fetching pet sitters.");
+  }
+}
