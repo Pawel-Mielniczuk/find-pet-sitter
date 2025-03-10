@@ -2,6 +2,7 @@ import { AuthError, Session, User } from "@supabase/supabase-js";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React from "react";
 
+import { fetchPetSitterProfile } from "../lib/api";
 import { supabase } from "../lib/supabase";
 
 export enum UserRole {
@@ -9,11 +10,24 @@ export enum UserRole {
   PET_SITTER = "pet_sitter",
 }
 
+export interface PetSitterProfile {
+  id: string;
+  price: number;
+  years_experience: number;
+  services: string;
+  specialties: string | null;
+  availability_status: boolean;
+  created_at: string;
+  updated_at: string | null;
+  background_check_verified: boolean | null;
+}
+
 export interface ExtendedUser extends User {
   user_role: UserRole;
   first_name: string | null;
   last_name: string | null;
   location: string | null;
+  pet_sitter_profile?: PetSitterProfile | null;
 }
 
 type AuthContextType = {
@@ -81,6 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     staleTime: Infinity,
   });
 
+  const { data: petSitterData } = useQuery({
+    queryKey: ["petSitterProfile", sessionData?.user?.id],
+    queryFn: () => fetchPetSitterProfile(sessionData?.user?.id as string),
+    enabled: !!sessionData?.user?.id && userProfileData?.role === "pet_sitter",
+    staleTime: Infinity,
+  });
+
   React.useEffect(() => {
     if (sessionData) {
       setSession(sessionData);
@@ -112,11 +133,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         first_name: userProfileData?.first_name || null,
         last_name: userProfileData?.last_name || null,
         location: userProfileData?.location || null,
+        pet_sitter_profile: petSitterData || null,
       });
     } else {
       setUser(null);
     }
-  }, [sessionData, userProfileData]);
+  }, [sessionData, userProfileData, petSitterData]);
 
   const loading = isSessionLoading || (!!sessionData?.user && isProfileLoading);
 
