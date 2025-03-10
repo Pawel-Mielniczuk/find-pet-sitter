@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import { MapPin, Phone, User } from "lucide-react-native";
 import React from "react";
@@ -24,10 +25,16 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function CompleteProfileScreen() {
   const [loading, setLoading] = React.useState(false);
+  const [locationLoading, setLocationLoading] = React.useState(false);
 
   const { user, updateUserProfile, loading: authLoading } = useAuth();
   const { inputs, errors, handleChange } = useForm({
-    initialValues,
+    initialValues: {
+      ...initialValues,
+      latitude: null,
+      longitude: null,
+      location: "",
+    },
     validate: validateCompleteProfileForm,
   });
 
@@ -36,6 +43,45 @@ export default function CompleteProfileScreen() {
       router.replace("/(auth)/login-form");
     }
   }, [user, authLoading]);
+
+  const getCurrentLocation = async () => {
+    setLocationLoading(true);
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Location Permission",
+          "Permission to access location was denied. Please enter your location manually.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (geocode && geocode.length > 0) {
+        const address = geocode[0];
+        const city = address.city || "";
+
+        handleChange("latitude", String(location.coords.latitude));
+        handleChange("longitude", String(location.coords.longitude));
+        handleChange("location", `${city}, ${address.region || ""}`.trim());
+      } else {
+        Alert.alert("Location Error", "Could not determine your city. Please enter manually.");
+      }
+    } catch (error) {
+      Alert.alert("Location Error", "Failed to get your current location. Please enter manually.");
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   if (authLoading) {
     return <Text>Loading...</Text>;
@@ -51,7 +97,7 @@ export default function CompleteProfileScreen() {
     setLoading(true);
 
     try {
-      const { error } = await updateUserProfile({
+      const { error: profileError } = await updateUserProfile({
         first_name: inputs.firstName,
         last_name: inputs.lastName,
         phone_number: inputs.phone,
@@ -59,16 +105,19 @@ export default function CompleteProfileScreen() {
         role: inputs.userType,
         email: user?.email,
         created_at: new Date(),
+        latitude: inputs.latitude,
+        longitude: inputs.longitude,
       });
 
-      if (error) {
-        Alert.alert("Profile Update Failed", error.message);
+      if (profileError) {
+        Alert.alert("Profile Update Failed", profileError.message);
+        return;
+      }
+
+      if (inputs.userType === "pet_sitter") {
+        router.replace("/(auth)/pet-sitter-profile-form");
       } else {
-        if (inputs.userType === "pet_sitter") {
-          router.replace("/(auth)/pet-sitter-profile-form");
-        } else {
-          router.replace("/(index)");
-        }
+        router.replace("/(index)");
       }
     } catch (error: any) {
       Alert.alert("Profile Update Failed", error.message);
@@ -118,14 +167,26 @@ export default function CompleteProfileScreen() {
             leftIcon={<Phone size={20} color="#6B7280" />}
           />
 
-          <TextInput
-            label="Location"
-            placeholder="City, State"
-            value={inputs.location}
-            onChangeText={value => handleChange("location", value)}
-            error={errors.location}
-            leftIcon={<MapPin size={20} color="#6B7280" />}
-          />
+          <View style={styles.locationContainer}>
+            <TextInput
+              label="Location"
+              placeholder="City, State"
+              value={inputs.location}
+              onChangeText={value => handleChange("location", value)}
+              error={errors.location}
+              leftIcon={<MapPin size={20} color="#6B7280" />}
+              containerStyle={styles.locationInput}
+            />
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={getCurrentLocation}
+              disabled={locationLoading}
+            >
+              <Text style={styles.locationButtonText}>
+                {locationLoading ? "Loading..." : "Use Current"}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.roleLabel}>I am a:</Text>
           {errors.userType && <Text style={styles.errorText}>{errors.userType}</Text>}
@@ -233,5 +294,28 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 16,
+  },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginBottom: 16,
+  },
+  locationInput: {
+    flex: 1,
+    marginRight: 8,
+  },
+  locationButton: {
+    backgroundColor: "#E5E7EB",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    height: 46,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  locationButtonText: {
+    color: "#4B5563",
+    fontWeight: "500",
+    fontSize: 14,
   },
 });

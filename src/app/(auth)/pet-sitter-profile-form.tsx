@@ -19,7 +19,7 @@ import { supabase } from "../../lib/supabase";
 
 export default function PetSitterProfileScreen() {
   const [loading, setLoading] = React.useState(false);
-  const { user } = useAuth();
+  const { user, updatePetSitterProfile } = useAuth();
   const [inputs, setInputs] = React.useState({
     price: "",
     yearsExperience: "",
@@ -70,7 +70,7 @@ export default function PetSitterProfileScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  async function handleSubmitForm() {
     if (!validateForm()) return;
 
     setLoading(true);
@@ -84,30 +84,42 @@ export default function PetSitterProfileScreen() {
           ? inputs.specialties
           : inputs.specialties.split(",").map(item => item.trim())
         : null;
-      const { error } = await supabase
-        .from("pet_sitter_profiles")
-        .upsert({
-          id: user?.id,
-          price: Number(inputs.price),
-          years_experience: Number(inputs.yearsExperience),
-          services: servicesArray,
-          specialties: specialtiesArray,
-          availability_status: inputs.availabilityStatus,
-          created_at: new Date(),
-        })
-        .select();
 
-      if (error) {
-        Alert.alert("Profile Update Failed", error.message);
-      } else {
-        router.replace("/(index)");
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("latitude, longitude")
+        .eq("id", user?.id)
+        .single();
+
+      if (profileError) {
+        Alert.alert("Error fetching profile data", profileError.message);
+        return;
       }
+
+      const { error: petSitterError } = await updatePetSitterProfile({
+        id: user?.id,
+        price: Number(inputs.price),
+        years_experience: Number(inputs.yearsExperience),
+        services: servicesArray,
+        specialties: specialtiesArray,
+        availability_status: inputs.availabilityStatus,
+        created_at: new Date(),
+        latitude: profileData?.latitude,
+        longitude: profileData?.longitude,
+      });
+
+      if (petSitterError) {
+        Alert.alert("Pet Sitter Profile Update Failed", petSitterError.message);
+        return;
+      }
+
+      router.replace("/(index)");
     } catch (error: any) {
       Alert.alert("Profile Update Failed", error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   if (!user) return null;
 
@@ -180,7 +192,7 @@ export default function PetSitterProfileScreen() {
             />
           </View>
 
-          <Button onPress={handleSubmit} loading={loading} style={styles.button}>
+          <Button onPress={handleSubmitForm} loading={loading} style={styles.button}>
             Complete Pet Sitter Profile
           </Button>
         </View>
