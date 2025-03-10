@@ -83,3 +83,24 @@ export async function fetchPetSitters(city: string) {
     throw new Error("Unexpected error occurred while fetching pet sitters.");
   }
 }
+
+export async function fetchPetSitterProfile(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("pet_sitter_profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      throw new Error(`Error fetching pet sitter profile: ${error.message}`);
+    }
+
+    return data || null;
+  } catch (error: any) {
+    if (error instanceof Error) {
+      throw new Error(`Error fetching pet sitter profile: ${error.message}`);
+    }
+    throw new Error("Unexpected error occurred while fetching pet sitter profile.");
+  }
+}
