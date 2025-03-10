@@ -64,7 +64,11 @@ export default function CompleteProfileScreen() {
       if (error) {
         Alert.alert("Profile Update Failed", error.message);
       } else {
-        router.replace("/(index)");
+        if (inputs.userType === "pet_sitter") {
+          router.replace("/(auth)/pet-sitter-profile-form");
+        } else {
+          router.replace("/(index)");
+        }
       }
     } catch (error: any) {
       Alert.alert("Profile Update Failed", error.message);
