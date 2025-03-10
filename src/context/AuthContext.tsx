@@ -13,6 +13,7 @@ export interface ExtendedUser extends User {
   user_role: UserRole;
   first_name: string | null;
   last_name: string | null;
+  location: string | null;
 }
 
 type AuthContextType = {
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("role, first_name, last_name")
+        .select("role, first_name, last_name, location")
         .eq("id", userId)
         .single();
 
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: data?.role || null,
         first_name: data?.first_name || null,
         last_name: data?.last_name || null,
+        location: data?.location || null,
       };
     } catch (error: any) {
       if (error instanceof Error) {
@@ -109,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user_role: userProfileData?.role || null,
         first_name: userProfileData?.first_name || null,
         last_name: userProfileData?.last_name || null,
+        location: userProfileData?.location || null,
       });
     } else {
       setUser(null);
