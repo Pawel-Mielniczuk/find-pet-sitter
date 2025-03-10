@@ -26,8 +26,10 @@ export interface ExtendedUser extends User {
   user_role: UserRole;
   first_name: string | null;
   last_name: string | null;
-  location: string | null;
   pet_sitter_profile?: PetSitterProfile | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 type AuthContextType = {
@@ -43,6 +45,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   updateUserProfile: (data: any) => Promise<{ error: any }>;
+  updatePetSitterProfile: (data: any) => Promise<{ error: any }>;
 };
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -67,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("role, first_name, last_name, location")
+        .select("role, first_name, last_name, location, latitude, longitude")
         .eq("id", userId)
         .single();
 
@@ -79,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         first_name: data?.first_name || null,
         last_name: data?.last_name || null,
         location: data?.location || null,
+        latitude: data?.latitude || null,
+        longitude: data?.longitude || null,
       };
     } catch (error: any) {
       if (error instanceof Error) {
@@ -134,6 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         last_name: userProfileData?.last_name || null,
         location: userProfileData?.location || null,
         pet_sitter_profile: petSitterData || null,
+        latitude: userProfileData?.latitude || null,
+        longitude: userProfileData?.longitude || null,
       });
     } else {
       setUser(null);
@@ -189,25 +196,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const userId = sessionData?.user?.id;
-      if (!userId) throw new Error("No user logged in");
-
-      const { error } = await supabase.from("profiles").update(data).eq("id", userId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (sessionData?.user?.id) {
-        queryClient.invalidateQueries({ queryKey: ["userProfile", sessionData.user.id] });
-      }
-    },
-    onError: error => {
-      throw error;
-    },
-  });
-
   async function signUp(email: string, password: string, password_confirmation: string) {
     try {
       await signUpMutation.mutateAsync({ email, password, password_confirmation });
@@ -233,14 +221,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateUserProfile = async (data: any) => {
-    const { error } = await supabase
+  async function updateUserProfile(data: any) {
+    const { error: profileError } = await supabase
       .from("profiles")
       .upsert({ id: user?.id, ...data })
       .select();
 
-    return { error };
-  };
+    if (profileError) {
+      return { error: profileError };
+    }
+
+    return { error: null };
+  }
+
+  async function updatePetSitterProfile(data: any) {
+    const { error: petSitterError } = await supabase
+      .from("pet_sitter_profiles")
+      .upsert({ id: user?.id, ...data })
+      .select();
+
+    if (petSitterError) {
+      return { error: petSitterError };
+    }
+
+    return { error: null };
+  }
 
   const value = React.useMemo(
     () => ({
@@ -251,6 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       signUp,
       updateUserProfile,
+      updatePetSitterProfile,
     }),
     [user, session, loading, signIn, signUp],
   );
