@@ -26,9 +26,24 @@ export const newPetSchema = z.object({
   custom_type: z.string().nullable().default(""),
 });
 
+export const petSitterSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  location: z.string(),
+  image: z.string().nullable(),
+  price: z.number().nullable(),
+  years_experience: z.number().nullable(),
+  services: z.array(z.string()).nullable(),
+  specialties: z.array(z.string()).nullable(),
+  availability_status: z.boolean().nullable(),
+  bio: z.string().nullable(),
+  rating: z.number().nullable(),
+});
+
 // Inferred types from schemas
 export type Pet = z.infer<typeof petSchema>;
 export type NewPet = z.infer<typeof newPetSchema>;
+export type PetSitter = z.infer<typeof petSitterSchema>;
 
 // Pet types
 export type PetType =
