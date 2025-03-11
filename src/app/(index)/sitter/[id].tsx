@@ -1,14 +1,6 @@
 import { Image } from "expo-image";
-import { router, useLocalSearchParams } from "expo-router";
-import {
-  ArrowLeft,
-  Calendar,
-  Clock,
-  MapPin,
-  MessageCircle,
-  Shield,
-  Star,
-} from "lucide-react-native";
+import { router } from "expo-router";
+import { ArrowLeft, MapPin, MessageCircle, Shield, Star } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -58,8 +50,6 @@ const SITTER = {
 };
 
 export default function SitterProfileScreen() {
-  const { id } = useLocalSearchParams();
-
   const handleStartChat = () => {
     // This will be implemented later
   };
