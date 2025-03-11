@@ -7,9 +7,7 @@ export default function AuthLayout() {
   const { user } = useAuth();
   React.useEffect(() => {
     if (user && user.user_role === "pet_sitter") {
-      if (user.hasOwnProperty("pet_sitter_profile") && !user.pet_sitter_profile) {
-        router.replace("/(auth)/pet-sitter-profile-form");
-      }
+      router.replace("/(auth)/pet-sitter-profile-form");
     }
   }, [user]);
   return (

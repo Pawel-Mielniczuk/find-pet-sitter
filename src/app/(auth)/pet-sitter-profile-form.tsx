@@ -15,11 +15,10 @@ import {
 import { Button } from "../../components/button/Button";
 import { TextInput } from "../../components/text-input/TextInput";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../lib/supabase";
 
 export default function PetSitterProfileScreen() {
   const [loading, setLoading] = React.useState(false);
-  const { user, updatePetSitterProfile } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [inputs, setInputs] = React.useState({
     price: "",
     yearsExperience: "",
@@ -85,31 +84,17 @@ export default function PetSitterProfileScreen() {
           : inputs.specialties.split(",").map(item => item.trim())
         : null;
 
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("latitude, longitude")
-        .eq("id", user?.id)
-        .single();
-
-      if (profileError) {
-        Alert.alert("Error fetching profile data", profileError.message);
-        return;
-      }
-
-      const { error: petSitterError } = await updatePetSitterProfile({
-        id: user?.id,
+      const { error } = await updateUserProfile({
         price: Number(inputs.price),
         years_experience: Number(inputs.yearsExperience),
         services: servicesArray,
         specialties: specialtiesArray,
         availability_status: inputs.availabilityStatus,
-        created_at: new Date(),
-        latitude: profileData?.latitude,
-        longitude: profileData?.longitude,
+        updated_at: new Date(),
       });
 
-      if (petSitterError) {
-        Alert.alert("Pet Sitter Profile Update Failed", petSitterError.message);
+      if (error) {
+        Alert.alert("Pet Sitter Profile Update Failed", error.message);
         return;
       }
 
