@@ -1,10 +1,11 @@
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, MapPin, MessageCircle, Shield, Star } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// This would come from your API/database in a real app
+import { PetSitter } from "@/src/lib/types";
+
 const SITTER = {
   id: "1",
   name: "Sarah Johnson",
@@ -50,6 +51,10 @@ const SITTER = {
 };
 
 export default function SitterProfileScreen() {
+  const { sitterData } = useLocalSearchParams();
+
+  const sitter: PetSitter = JSON.parse(sitterData as string);
+
   const handleStartChat = () => {
     // This will be implemented later
   };
@@ -58,10 +63,21 @@ export default function SitterProfileScreen() {
     // Navigate to booking screen
   };
 
+  if (!sitterData) {
+    return (
+      <View>
+        <Text>Sitter profile not found.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.replace("/search-pet-sitter")}
+        >
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Pet Sitter Profile</Text>
@@ -72,7 +88,7 @@ export default function SitterProfileScreen() {
         <View style={styles.profileHeader}>
           <Image source={{ uri: SITTER.image }} style={styles.profileImage} />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{SITTER.name}</Text>
+            <Text style={styles.name}>{sitter.name}</Text>
             <View style={styles.ratingContainer}>
               <Star size={16} color="#FBC02D" fill="#FBC02D" />
               <Text style={styles.rating}>{SITTER.rating}</Text>
@@ -80,21 +96,21 @@ export default function SitterProfileScreen() {
             </View>
             <View style={styles.locationContainer}>
               <MapPin size={14} color="#6B7280" />
-              <Text style={styles.location}>{SITTER.location}</Text>
+              <Text style={styles.location}>{sitter.location}</Text>
             </View>
-            <Text style={styles.price}>${SITTER.price}/hour</Text>
+            <Text style={styles.price}>${sitter.price}/hour</Text>
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.description}>{SITTER.description}</Text>
+          <Text style={styles.description}>{sitter.bio}</Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Specialties</Text>
           <View style={styles.specialtiesContainer}>
-            {SITTER.specialties.map(specialty => (
+            {sitter?.specialties?.map(specialty => (
               <View key={specialty} style={styles.specialtyTag}>
                 <Text style={styles.specialtyText}>{specialty}</Text>
               </View>
