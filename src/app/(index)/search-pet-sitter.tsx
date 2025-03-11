@@ -1,7 +1,7 @@
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
-import { Check, Filter, MapPin, Search as SearchIcon, Star, X } from "lucide-react-native";
+import { Check, Filter, MapPin, Search as SearchIcon, X } from "lucide-react-native";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,8 @@ import {
 import { useAuth } from "@/src/context/AuthContext";
 import { fetchPetSitters } from "@/src/lib/api";
 import { queryClient } from "@/src/lib/queryClient";
+
+import { PetSitter } from "../../lib/types";
 
 const extractCity = (location: any) => {
   if (!location) return "";
@@ -56,12 +58,19 @@ export default function SearchScreen() {
   } = useQuery({
     queryKey: ["petSitters", searchCity, shouldSearch],
     queryFn: () => fetchPetSitters(searchCity),
-    select: data =>
+    select: (data): PetSitter[] =>
       data.map(sitter => ({
         id: sitter.id,
         name: `${sitter.first_name} ${sitter.last_name}`,
         location: sitter.location,
         image: sitter.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+        price: sitter.price,
+        years_experience: sitter.years_experience,
+        services: sitter.services,
+        specialties: sitter.specialties,
+        availability_status: sitter.availability_status,
+        bio: sitter.bio,
+        rating: sitter.rating ?? null,
       })),
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -73,13 +82,13 @@ export default function SearchScreen() {
   };
 
   const handleSearchPress = () => {
-    const city = extractCity(searchQuery);
+    const city = extractCity(searchQuery.trim());
     if (city) {
       setSearchCity(city);
       setShouldSearch(true);
 
       if (searchQuery.trim() !== "" && !locationOptions.includes(searchQuery)) {
-        setLocationOptions(prev => [...prev, searchQuery]);
+        setLocationOptions(prev => [...prev, searchQuery.trim()]);
       }
     }
   };
@@ -106,42 +115,30 @@ export default function SearchScreen() {
     );
   };
 
-  // const filterSitters = useCallback(() => {
-  //   if (!sitters) return [];
+  const filterSitters = useCallback(() => {
+    if (!sitters) return [];
 
-  //   return sitters.filter(sitter => {
-  //     const matchesSearch =
-  //       sitter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  //       (sitter.location && sitter.location.toLowerCase().includes(searchQuery.toLowerCase()));
+    return sitters.filter(sitter => {
+      const matchesSearch =
+        sitter.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        (sitter.location &&
+          sitter.location.toLowerCase().includes(searchQuery.trim().toLowerCase()));
 
-  //     const matchesSpecialty =
-  //       selectedSpecialties.length === 0 ||
-  //       (sitter.specialties &&
-  //         selectedSpecialties.some(specialty => sitter.specialties.includes(specialty)));
+      const matchesSpecialty =
+        selectedSpecialties.length === 0 ||
+        (sitter.specialties &&
+          selectedSpecialties.some(specialty => sitter.specialties?.includes(specialty)));
 
-  //     const matchesLocation =
-  //       selectedLocations.length === 0 ||
-  //       (sitter.location && selectedLocations.includes(sitter.location));
+      const matchesLocation =
+        selectedLocations.length === 0 ||
+        (sitter.location && selectedLocations.includes(sitter.location));
 
-  //     const matchesAvailability =
-  //       selectedAvailability.length === 0 ||
-  //       (sitter.availability && selectedAvailability.includes(sitter.availability));
+      const matchesPrice =
+        !sitter.price || (sitter.price >= priceRange[0] && sitter.price <= priceRange[1]);
 
-  //     const matchesPrice =
-  //       !sitter.price || (sitter.price >= priceRange[0] && sitter.price <= priceRange[1]);
-
-  //     return (
-  //       matchesSearch && matchesSpecialty && matchesLocation && matchesAvailability && matchesPrice
-  //     );
-  //   });
-  // }, [
-  //   searchQuery,
-  //   selectedSpecialties,
-  //   selectedLocations,
-  //   selectedAvailability,
-  //   priceRange,
-  //   sitters,
-  // ]);
+      return matchesSearch && matchesSpecialty && matchesLocation && matchesPrice;
+    });
+  }, [searchQuery, selectedSpecialties, selectedLocations, priceRange, sitters]);
 
   const clearFilters = () => {
     setSelectedSpecialties([]);
@@ -165,62 +162,64 @@ export default function SearchScreen() {
     queryClient.invalidateQueries({ queryKey: ["petSitters"] });
   };
 
-  const renderSitterItem = ({ item }: { item: any }) => (
-    <Link
-      href={{
-        pathname: `/(index)/sitter/[id]`,
-        params: {
-          id: item.id,
-        },
-      }}
-      asChild
-    >
-      <Pressable style={styles.sitterCard}>
-        <Image source={{ uri: item.image }} style={styles.sitterImage} />
-        <View style={styles.sitterInfo}>
-          <Text style={styles.sitterName}>{item.name}</Text>
-          {item.rating && (
-            <View style={styles.ratingContainer}>
-              <Star size={16} color="#FBC02D" fill="#FBC02D" />
-              <Text style={styles.rating}>{item.rating}</Text>
-              {item.reviews && <Text style={styles.reviews}>({item.reviews})</Text>}
-            </View>
-          )}
-          {item.location && (
-            <View style={styles.locationContainer}>
-              <MapPin size={14} color="#6B7280" />
-              <Text style={styles.location}>{item.location}</Text>
-            </View>
-          )}
-          {item.specialties && item.specialties.length > 0 && (
-            <View style={styles.specialtiesContainer}>
-              {item.specialties.map((specialty: any, index: any) => (
-                <View key={specialty} style={styles.specialtyTag}>
-                  <Text style={styles.specialtyText}>{specialty}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-          <View style={styles.footer}>
-            {item.price && <Text style={styles.price}>${item.price}/hour</Text>}
-            {item.availability && (
-              <Text
-                style={[
-                  styles.availability,
-                  { color: item.availability === "Available Now" ? "#059669" : "#D97706" },
-                ]}
-              >
-                {item.availability}
-              </Text>
+  const renderSitterItem = ({ item }: { item: PetSitter }) => {
+    {
+    }
+    return (
+      <Link
+        href={{
+          pathname: `/(index)/sitter/[id]`,
+          params: {
+            id: item.id,
+            sitterData: JSON.stringify(item),
+          },
+        }}
+        asChild
+      >
+        <Pressable style={styles.sitterCard}>
+          <Image
+            source={{
+              uri: item.image
+                ? item.image
+                : "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+            }}
+            style={styles.sitterImage}
+          />
+          <View style={styles.sitterInfo}>
+            <Text style={styles.sitterName}>{item.name}</Text>
+            {/* {item.rating && (
+              <View style={styles.ratingContainer}>
+                <Star size={16} color="#FBC02D" fill="#FBC02D" />
+                <Text style={styles.rating}>{item.rating}</Text>
+                {item.reviews && <Text style={styles.reviews}>({item.reviews})</Text>}
+              </View>
+            )} */}
+            {item.location && (
+              <View style={styles.locationContainer}>
+                <MapPin size={14} color="#6B7280" />
+                <Text style={styles.location}>{item.location}</Text>
+              </View>
             )}
-          </View>
-        </View>
-      </Pressable>
-    </Link>
-  );
 
-  // const filteredSitters = filterSitters();
-  const filteredSitters = [];
+            {item.specialties && item.specialties.length > 0 && (
+              <View style={styles.specialtiesContainer}>
+                {item.specialties.map((specialty: any, index: any) => (
+                  <View key={specialty} style={styles.specialtyTag}>
+                    <Text style={styles.specialtyText}>{specialty}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            <View style={styles.footer}>
+              {item.price && <Text style={styles.price}>${item.price}/hour</Text>}
+            </View>
+          </View>
+        </Pressable>
+      </Link>
+    );
+  };
+
+  const filteredSitters = filterSitters();
 
   if (isLoading && (!sitters || sitters.length === 0)) {
     return (
@@ -305,7 +304,7 @@ export default function SearchScreen() {
             </View>
           ) : (
             <LegendList
-              data={[]}
+              data={filteredSitters}
               renderItem={renderSitterItem}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.listContent}
