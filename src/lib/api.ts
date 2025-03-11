@@ -67,7 +67,9 @@ export async function fetchPetSitters(city: string) {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, first_name, last_name, role, location, bio, avatar_url")
+      .select(
+        "id, first_name, last_name, role, location, bio, avatar_url, location, latitude, longitude, price, years_experience, services, specialties ,availability_status, bio, rating",
+      )
       .eq("role", "pet_sitter")
       .eq("location", city);
 
