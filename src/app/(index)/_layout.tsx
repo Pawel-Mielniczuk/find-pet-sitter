@@ -104,6 +104,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen name="pet/[id]" options={{ href: null }} />
       <Tabs.Screen name="pet/edit/[id]" options={{ href: null }} />
+      <Tabs.Screen name="sitter/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
