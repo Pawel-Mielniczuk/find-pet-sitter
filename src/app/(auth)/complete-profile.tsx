@@ -72,7 +72,7 @@ export default function CompleteProfileScreen() {
 
         handleChange("latitude", String(location.coords.latitude));
         handleChange("longitude", String(location.coords.longitude));
-        handleChange("location", `${city}, ${address.region || ""}`.trim());
+        handleChange("location", city.trim());
       } else {
         Alert.alert("Location Error", "Could not determine your city. Please enter manually.");
       }
