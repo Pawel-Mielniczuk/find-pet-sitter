@@ -1,9 +1,8 @@
 import { LegendList } from "@legendapp/list";
 import Slider from "@react-native-community/slider";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { Check, Filter, MapPin, Search as SearchIcon, X } from "lucide-react-native";
-import React, { useCallback, useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   Image,
@@ -17,18 +16,9 @@ import {
 } from "react-native";
 
 import { useAuth } from "@/src/context/AuthContext";
-import { fetchPetSitters } from "@/src/lib/api";
-import { queryClient } from "@/src/lib/queryClient";
 
+import { useSearch } from "../../context/SearchContext";
 import { PetSitter } from "../../lib/types";
-
-const extractCity = (location: any) => {
-  if (!location) return "";
-  return location.split(",")[0].trim();
-};
-
-const SPECIALTIES = ["Dogs", "Cats", "Birds", "Small Pets", "Reptiles", "Fish"];
-const AVAILABILITY = ["Available Now", "Today", "This Week", "Next Week"];
 
 type RadiusSliderProps = {
   value: number;
@@ -53,142 +43,26 @@ const RadiusSlider = React.memo(function RadiusSlider({ value, onChange }: Radiu
 });
 
 export default function SearchScreen() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
-  const [searchCity, setSearchCity] = useState("");
-  const [shouldSearch, setShouldSearch] = useState(false);
   const { user } = useAuth();
-  const [locationOptions, setLocationOptions] = useState<string[]>([]);
-
-  const searchRadiusRef = React.useRef(10);
-  const [searchRadius, setSearchRadius] = useState(10);
-
-  React.useEffect(() => {
-    if (user && user.location) {
-      const city = extractCity(user.location);
-      setSearchCity(city);
-
-      setLocationOptions([...new Set(user.location ? [user.location] : [])]);
-      setShouldSearch(true);
-    }
-  }, [user]);
 
   const {
-    data: sitters = [],
+    state,
+    dispatch,
+    handleSearchChange,
+    handleSearchPress,
+    toggleSpecialty,
+    toggleLocation,
+    toggleAvailability,
+    handleRadiusChange,
+    clearFilters,
+    applyFilters,
+    filteredSitters,
+    specialtyOptions,
     isLoading,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ["petSitters", searchCity, shouldSearch],
-    queryFn: async () => {
-      if (searchRadiusRef.current) {
-        return fetchPetSitters(searchCity, null, null, searchRadiusRef.current);
-      } else {
-        return fetchPetSitters(searchCity, null, null, null);
-      }
-    },
-    select: (data: PetSitter[]): PetSitter[] =>
-      data.map((sitter: PetSitter) => ({
-        id: sitter.id,
-        first_name: sitter.first_name,
-        last_name: sitter.last_name,
-        location: sitter.location,
-        image: sitter.image,
-        price: sitter.price,
-        years_experience: sitter.years_experience,
-        services: sitter.services,
-        specialties: sitter.specialties,
-        availability_status: sitter.availability_status,
-        bio: sitter.bio,
-        rating: sitter.rating,
-      })),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-    enabled: shouldSearch && !!searchCity,
-  });
-
-  const handleSearchChange = (text: string) => {
-    setSearchQuery(text);
-  };
-
-  const handleSearchPress = async () => {
-    const city = extractCity(searchQuery.trim());
-    if (city) {
-      setSearchCity(city);
-      setShouldSearch(true);
-
-      if (searchQuery.trim() !== "" && !locationOptions.includes(searchQuery)) {
-        setLocationOptions(prev => [...new Set([...prev, searchQuery.trim()])]);
-
-        setSelectedLocations([searchQuery.trim()]);
-      }
-    }
-  };
-
-  const toggleSpecialty = (specialty: string) => {
-    setSelectedSpecialties(prev =>
-      prev.includes(specialty) ? prev.filter(s => s !== specialty) : [...prev, specialty],
-    );
-  };
-
-  const toggleLocation = (location: string) => {
-    setSelectedLocations(prev => {
-      const newLocations = prev.includes(location)
-        ? prev.filter(l => l !== location)
-        : [...prev, location];
-
-      return newLocations;
-    });
-  };
-
-  const toggleAvailability = (availability: string) => {
-    setSelectedAvailability(prev =>
-      prev.includes(availability) ? prev.filter(a => a !== availability) : [...prev, availability],
-    );
-  };
-
-  const handleRadiusChange = useCallback(
-    (value: number) => {
-      setSearchRadius(value);
-      searchRadiusRef.current = value;
-    },
-    [setSearchRadius],
-  );
-  const filterSitters = useCallback(() => {
-    if (!sitters) return [];
-
-    return sitters.filter(sitter => {
-      const matchesSpecialty =
-        selectedSpecialties.length === 0 ||
-        (sitter.specialties &&
-          selectedSpecialties.some(specialty => sitter.specialties?.includes(specialty)));
-
-      const matchesPrice =
-        !sitter.price || (sitter.price >= priceRange[0] && sitter.price <= priceRange[1]);
-
-      return matchesSpecialty && matchesPrice;
-    });
-  }, [selectedSpecialties, priceRange, sitters]);
-
-  const clearFilters = () => {
-    setSelectedSpecialties([]);
-    setSelectedLocations([]);
-    setSelectedAvailability([]);
-    setPriceRange([0, 100]);
-    setSearchRadius(10);
-  };
-
-  const applyFilters = () => {
-    setFilterModalVisible(false);
-
-    searchRadiusRef.current = searchRadius;
-    setShouldSearch(true);
-    queryClient.invalidateQueries({ queryKey: ["petSitters"] });
-  };
+    AVAILABILITY,
+  } = useSearch();
 
   const renderSitterItem = ({ item }: { item: PetSitter }) => {
     return (
@@ -239,13 +113,11 @@ export default function SearchScreen() {
     );
   };
 
-  const filteredSitters = filterSitters();
-
-  if (isLoading && (!sitters || sitters.length === 0)) {
+  if (isLoading && filteredSitters.length === 0) {
     return (
       <View style={[styles.container, styles.centeredContainer]}>
         <ActivityIndicator size="large" color="#7C3AED" />
-        <Text style={styles.loadingText}>Finding pet sitters in {searchCity}...</Text>
+        <Text style={styles.loadingText}>Finding pet sitters in {state.searchCity}...</Text>
       </View>
     );
   }
@@ -258,7 +130,7 @@ export default function SearchScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Search by name or location..."
-            value={searchQuery}
+            value={state.searchQuery}
             onChangeText={handleSearchChange}
             placeholderTextColor="#9CA3AF"
           />
@@ -269,19 +141,19 @@ export default function SearchScreen() {
         <Pressable
           style={[
             styles.filterButton,
-            (selectedSpecialties.length > 0 ||
-              selectedLocations.length > 0 ||
-              selectedAvailability.length > 0) &&
+            (state.selectedSpecialties.length > 0 ||
+              state.selectedLocations.length > 0 ||
+              state.selectedAvailability.length > 0) &&
               styles.filterButtonActive,
           ]}
-          onPress={() => setFilterModalVisible(true)}
+          onPress={() => dispatch({ type: "SET_FILTER_MODAL_VISIBLE", payload: true })}
         >
           <Filter
             size={20}
             color={
-              selectedSpecialties.length > 0 ||
-              selectedLocations.length > 0 ||
-              selectedAvailability.length > 0
+              state.selectedSpecialties.length > 0 ||
+              state.selectedLocations.length > 0 ||
+              state.selectedAvailability.length > 0
                 ? "#FFFFFF"
                 : "#7C3AED"
             }
@@ -299,7 +171,7 @@ export default function SearchScreen() {
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
-              setShouldSearch(true);
+              dispatch({ type: "SET_SHOULD_SEARCH", payload: true });
               refetch();
             }}
           >
@@ -308,13 +180,13 @@ export default function SearchScreen() {
         </View>
       ) : (
         <>
-          {isLoading && sitters.length > 0 && (
+          {isLoading && filteredSitters.length > 0 && (
             <View style={styles.refreshIndicator}>
               <ActivityIndicator size="small" color="#7C3AED" />
             </View>
           )}
 
-          {!shouldSearch && sitters.length === 0 ? (
+          {!state.shouldSearch && filteredSitters.length === 0 ? (
             <View style={styles.initialSearchState}>
               <SearchIcon size={48} color="#7C3AED" />
               <Text style={styles.initialSearchStateTitle}>Search for Pet Sitters</Text>
@@ -345,8 +217,8 @@ export default function SearchScreen() {
       <Modal
         animationType="slide"
         transparent={true}
-        visible={filterModalVisible}
-        onRequestClose={() => setFilterModalVisible(false)}
+        visible={state.filterModalVisible}
+        onRequestClose={() => dispatch({ type: "SET_FILTER_MODAL_VISIBLE", payload: false })}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -354,7 +226,7 @@ export default function SearchScreen() {
               <Text style={styles.modalTitle}>Filter Pet Sitters</Text>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setFilterModalVisible(false)}
+                onPress={() => dispatch({ type: "SET_FILTER_MODAL_VISIBLE", payload: false })}
               >
                 <X size={24} color="#6B7280" />
               </TouchableOpacity>
@@ -364,20 +236,20 @@ export default function SearchScreen() {
               data={[
                 {
                   title: "Specialties",
-                  items: SPECIALTIES,
-                  selected: selectedSpecialties,
+                  items: specialtyOptions,
+                  selected: state.selectedSpecialties,
                   onToggle: toggleSpecialty,
                 },
                 {
                   title: "Location",
-                  items: locationOptions,
-                  selected: selectedLocations,
+                  items: state.locationOptions,
+                  selected: state.selectedLocations,
                   onToggle: toggleLocation,
                 },
                 {
                   title: "Availability",
                   items: AVAILABILITY,
-                  selected: selectedAvailability,
+                  selected: state.selectedAvailability,
                   onToggle: toggleAvailability,
                 },
               ]}
@@ -414,7 +286,7 @@ export default function SearchScreen() {
                   {user?.latitude && user?.longitude && (
                     <View style={styles.filterSection}>
                       <Text style={styles.filterSectionTitle}>Search Radius</Text>
-                      <RadiusSlider value={searchRadiusRef.current} onChange={handleRadiusChange} />
+                      <RadiusSlider value={state.searchRadius} onChange={handleRadiusChange} />
                     </View>
                   )}
                   <View style={styles.filterActions}>
