@@ -63,15 +63,19 @@ export async function deletePet(petId: string, userId: string): Promise<void> {
   }
 }
 
-export async function fetchPetSitters(city: string) {
+export async function fetchPetSitters(
+  city: string | null,
+  lat: number | null,
+  lng: number | null,
+  radius: number | null,
+) {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        "id, first_name, last_name, role, location, bio, avatar_url, location, latitude, longitude, price, years_experience, services, specialties ,availability_status, bio, rating",
-      )
-      .eq("role", "pet_sitter")
-      .eq("location", city);
+    const { data, error } = await supabase.rpc("search_sitters", {
+      city: city,
+      lat: lat,
+      lng: lng,
+      radius: radius,
+    });
 
     if (error) {
       throw new Error(`Error fetching pet sitters: ${error.message}`);
