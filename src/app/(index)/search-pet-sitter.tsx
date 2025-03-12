@@ -1,4 +1,5 @@
 import { LegendList } from "@legendapp/list";
+import Slider from "@react-native-community/slider";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { Check, Filter, MapPin, Search as SearchIcon, X } from "lucide-react-native";
@@ -29,6 +30,28 @@ const extractCity = (location: any) => {
 const SPECIALTIES = ["Dogs", "Cats", "Birds", "Small Pets", "Reptiles", "Fish"];
 const AVAILABILITY = ["Available Now", "Today", "This Week", "Next Week"];
 
+type RadiusSliderProps = {
+  value: number;
+  onChange: (value: number) => void;
+};
+
+const RadiusSlider = React.memo(function RadiusSlider({ value, onChange }: RadiusSliderProps) {
+  return (
+    <View style={styles.sliderContainer}>
+      <Slider
+        style={styles.slider}
+        minimumValue={0}
+        maximumValue={50}
+        step={1}
+        value={value}
+        onValueChange={onChange}
+      />
+
+      <Text style={styles.radiusValue}>Radius: {value.toString()} km</Text>
+    </View>
+  );
+});
+
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -41,11 +64,15 @@ export default function SearchScreen() {
   const { user } = useAuth();
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
 
+  const searchRadiusRef = React.useRef(10);
+  const [searchRadius, setSearchRadius] = useState(10);
+
   React.useEffect(() => {
     if (user && user.location) {
       const city = extractCity(user.location);
       setSearchCity(city);
-      setLocationOptions(user.location ? [user.location] : []);
+
+      setLocationOptions([...new Set(user.location ? [user.location] : [])]);
       setShouldSearch(true);
     }
   }, [user]);
@@ -57,20 +84,27 @@ export default function SearchScreen() {
     refetch,
   } = useQuery({
     queryKey: ["petSitters", searchCity, shouldSearch],
-    queryFn: () => fetchPetSitters(searchCity),
-    select: (data): PetSitter[] =>
-      data.map(sitter => ({
+    queryFn: async () => {
+      if (searchRadiusRef.current) {
+        return fetchPetSitters(searchCity, null, null, searchRadiusRef.current);
+      } else {
+        return fetchPetSitters(searchCity, null, null, null);
+      }
+    },
+    select: (data: PetSitter[]): PetSitter[] =>
+      data.map((sitter: PetSitter) => ({
         id: sitter.id,
-        name: `${sitter.first_name} ${sitter.last_name}`,
+        first_name: sitter.first_name,
+        last_name: sitter.last_name,
         location: sitter.location,
-        image: sitter.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
+        image: sitter.image,
         price: sitter.price,
         years_experience: sitter.years_experience,
         services: sitter.services,
         specialties: sitter.specialties,
         availability_status: sitter.availability_status,
         bio: sitter.bio,
-        rating: sitter.rating ?? null,
+        rating: sitter.rating,
       })),
     staleTime: 5 * 60 * 1000,
     retry: 1,
@@ -81,14 +115,16 @@ export default function SearchScreen() {
     setSearchQuery(text);
   };
 
-  const handleSearchPress = () => {
+  const handleSearchPress = async () => {
     const city = extractCity(searchQuery.trim());
     if (city) {
       setSearchCity(city);
       setShouldSearch(true);
 
       if (searchQuery.trim() !== "" && !locationOptions.includes(searchQuery)) {
-        setLocationOptions(prev => [...prev, searchQuery.trim()]);
+        setLocationOptions(prev => [...new Set([...prev, searchQuery.trim()])]);
+
+        setSelectedLocations([searchQuery.trim()]);
       }
     }
   };
@@ -115,56 +151,46 @@ export default function SearchScreen() {
     );
   };
 
+  const handleRadiusChange = useCallback(
+    (value: number) => {
+      setSearchRadius(value);
+      searchRadiusRef.current = value;
+    },
+    [setSearchRadius],
+  );
   const filterSitters = useCallback(() => {
     if (!sitters) return [];
 
     return sitters.filter(sitter => {
-      const matchesSearch =
-        sitter.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-        (sitter.location &&
-          sitter.location.toLowerCase().includes(searchQuery.trim().toLowerCase()));
-
       const matchesSpecialty =
         selectedSpecialties.length === 0 ||
         (sitter.specialties &&
           selectedSpecialties.some(specialty => sitter.specialties?.includes(specialty)));
 
-      const matchesLocation =
-        selectedLocations.length === 0 ||
-        (sitter.location && selectedLocations.includes(sitter.location));
-
       const matchesPrice =
         !sitter.price || (sitter.price >= priceRange[0] && sitter.price <= priceRange[1]);
 
-      return matchesSearch && matchesSpecialty && matchesLocation && matchesPrice;
+      return matchesSpecialty && matchesPrice;
     });
-  }, [searchQuery, selectedSpecialties, selectedLocations, priceRange, sitters]);
+  }, [selectedSpecialties, priceRange, sitters]);
 
   const clearFilters = () => {
     setSelectedSpecialties([]);
     setSelectedLocations([]);
     setSelectedAvailability([]);
     setPriceRange([0, 100]);
+    setSearchRadius(10);
   };
 
   const applyFilters = () => {
     setFilterModalVisible(false);
 
-    if (selectedLocations.length === 1) {
-      const newCity = extractCity(selectedLocations[0]);
-      if (newCity !== searchCity) {
-        setSearchCity(newCity);
-        setShouldSearch(true);
-      }
-    }
-
+    searchRadiusRef.current = searchRadius;
     setShouldSearch(true);
     queryClient.invalidateQueries({ queryKey: ["petSitters"] });
   };
 
   const renderSitterItem = ({ item }: { item: PetSitter }) => {
-    {
-    }
     return (
       <Link
         href={{
@@ -186,14 +212,8 @@ export default function SearchScreen() {
             style={styles.sitterImage}
           />
           <View style={styles.sitterInfo}>
-            <Text style={styles.sitterName}>{item.name}</Text>
-            {/* {item.rating && (
-              <View style={styles.ratingContainer}>
-                <Star size={16} color="#FBC02D" fill="#FBC02D" />
-                <Text style={styles.rating}>{item.rating}</Text>
-                {item.reviews && <Text style={styles.reviews}>({item.reviews})</Text>}
-              </View>
-            )} */}
+            <Text style={styles.sitterName}>{`${item.first_name} ${item.last_name}`}</Text>
+
             {item.location && (
               <View style={styles.locationContainer}>
                 <MapPin size={14} color="#6B7280" />
@@ -211,7 +231,7 @@ export default function SearchScreen() {
               </View>
             )}
             <View style={styles.footer}>
-              {item.price && <Text style={styles.price}>${item.price}/hour</Text>}
+              <Text style={styles.price}>${String(item.price)}/hour</Text>
             </View>
           </View>
         </Pressable>
@@ -390,14 +410,22 @@ export default function SearchScreen() {
               )}
               keyExtractor={item => item.title}
               ListFooterComponent={
-                <View style={styles.filterActions}>
-                  <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-                    <Text style={styles.clearButtonText}>Clear All</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                    <Text style={styles.applyButtonText}>Apply Filters</Text>
-                  </TouchableOpacity>
-                </View>
+                <>
+                  {user?.latitude && user?.longitude && (
+                    <View style={styles.filterSection}>
+                      <Text style={styles.filterSectionTitle}>Search Radius</Text>
+                      <RadiusSlider value={searchRadiusRef.current} onChange={handleRadiusChange} />
+                    </View>
+                  )}
+                  <View style={styles.filterActions}>
+                    <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
+                      <Text style={styles.clearButtonText}>Clear All</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                      <Text style={styles.applyButtonText}>Apply Filters</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
               }
               estimatedItemSize={20}
               style={styles.modalBody}
@@ -717,5 +745,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280",
     textAlign: "center",
+  },
+  sliderContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+    padding: 16,
+    borderRadius: 12,
+  },
+  slider: {
+    width: "100%",
+    height: 40,
+  },
+  radiusValue: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#4B5563",
   },
 });
