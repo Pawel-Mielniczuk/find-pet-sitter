@@ -4,6 +4,7 @@ import React from "react";
 
 import { AuthProvider } from "../context/AuthContext";
 import { PetsProvider } from "../context/PetsContext";
+import { SearchProvider } from "../context/SearchContext";
 import { queryClient } from "../lib/queryClient";
 
 export default function RootLayout() {
@@ -11,7 +12,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PetsProvider>
-          <Slot />
+          <SearchProvider>
+            <Slot />
+          </SearchProvider>
         </PetsProvider>
       </AuthProvider>
     </QueryClientProvider>
