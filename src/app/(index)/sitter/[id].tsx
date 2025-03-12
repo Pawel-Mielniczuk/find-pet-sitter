@@ -88,7 +88,7 @@ export default function SitterProfileScreen() {
         <View style={styles.profileHeader}>
           <Image source={{ uri: SITTER.image }} style={styles.profileImage} />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{sitter.name}</Text>
+            <Text style={styles.name}>{`${sitter.first_name} ${sitter.last_name}`}</Text>
             <View style={styles.ratingContainer}>
               <Star size={16} color="#FBC02D" fill="#FBC02D" />
               <Text style={styles.rating}>{SITTER.rating}</Text>

@@ -28,7 +28,8 @@ export const newPetSchema = z.object({
 
 export const petSitterSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
   location: z.string(),
   image: z.string().nullable(),
   price: z.number().nullable(),
