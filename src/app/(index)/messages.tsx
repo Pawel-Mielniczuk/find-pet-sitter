@@ -1,60 +1,198 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LegendList } from "@legendapp/list";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import React from "react";
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-const MESSAGES = [
-  {
-    id: "1",
-    sender: "Sarah Johnson",
-    message: "Hi! I'm available to watch Luna next week...",
-    time: "2m ago",
-    unread: true,
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-  },
-  {
-    id: "2",
-    sender: "Michael Chen",
-    message: "Thanks for booking! I'll see you tomorrow at 9am",
-    time: "1h ago",
-    unread: false,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-  },
-  {
-    id: "3",
-    sender: "Emily Davis",
-    message: "Your booking has been confirmed for next...",
-    time: "3h ago",
-    unread: false,
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
-  },
-];
+import { Conversation } from "@/src/lib/types";
+
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 export default function MessagesScreen() {
+  const { user } = useAuth();
+  const [loading, setLoading] = React.useState(true);
+  const [conversations, setConversations] = React.useState<Conversation[]>([]);
+  // const [unreadMessages, setUnreadMessages] = React.useState({});
+  const [unreadMessages, setUnreadMessages] = React.useState<{ [key: string]: number }>({});
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+
+        const { data, error } = await supabase
+          .from("conversations")
+          .select(
+            `
+            id, 
+            owner_id, 
+            sitter_id, 
+            last_message, 
+            created_at,
+            owner:profiles!owner_id(id, first_name, last_name, avatar_url),
+            sitter:profiles!sitter_id(id, first_name, last_name, avatar_url)
+          `,
+          )
+          .or(`owner_id.eq.${user.id},sitter_id.eq.${user.id}`)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        const updatedConversations = data.map(conversation => ({
+          ...conversation,
+          owner: Array.isArray(conversation.owner)
+            ? conversation.owner[0]
+            : conversation.owner || null,
+          sitter: Array.isArray(conversation.sitter)
+            ? conversation.sitter[0]
+            : conversation.sitter || null,
+        }));
+
+        setConversations(updatedConversations as Conversation[]);
+
+        const unreadMessagesMap: { [key: string]: number } = {};
+
+        for (const conversation of data) {
+          const { data: messages, error: messagesError } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", conversation.id)
+            .eq("is_read", false);
+
+          if (messagesError) {
+            throw messagesError;
+          }
+
+          unreadMessagesMap[conversation.id] = messages.length;
+        }
+
+        setUnreadMessages(unreadMessagesMap);
+      } catch (error) {
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConversations();
+    const subscription = supabase
+      .channel("conversations_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+          filter: `owner_id=eq.${user.id},sitter_id=eq.${user.id}`,
+        },
+        () => {
+          fetchConversations();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user]);
+
+  const navigateToChat = (conversationId: string) => {
+    router.push(`/chat/${conversationId}`);
+  };
+
+  const renderConversationItem = ({ item }: { item: Conversation }) => {
+    if (!user) return null;
+
+    const isOwner = user.id === item.owner_id;
+    const otherPerson = isOwner ? item.sitter : item.owner;
+
+    const messageDate = new Date(item.created_at);
+    const today = new Date();
+    const isToday = messageDate.toDateString() === today.toDateString();
+
+    const dateDisplay = isToday
+      ? messageDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : messageDate.toLocaleDateString([], { month: "short", day: "numeric" });
+
+    const unreadCount = unreadMessages[item.id] || 0;
+    const conversationStyle =
+      unreadCount > 0 ? styles.conversationItemUnread : styles.conversationItem;
+
+    return (
+      <TouchableOpacity style={conversationStyle} onPress={() => navigateToChat(item.id)}>
+        <Image
+          source={{ uri: otherPerson?.avatar_url || "https://via.placeholder.com/50" }}
+          style={styles.avatar}
+        />
+
+        <View style={styles.conversationContent}>
+          <View style={styles.conversationHeader}>
+            <Text style={styles.personName}>
+              {otherPerson?.first_name} {otherPerson?.last_name}
+            </Text>
+            <Text style={styles.messageTime}>{dateDisplay}</Text>
+          </View>
+
+          <Text style={styles.lastMessage} numberOfLines={1} ellipsizeMode="tail">
+            {item.last_message || "No messages yet"}
+          </Text>
+
+          {unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadText}>{unreadCount}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#7C3AED" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.headerTitle}>Messages</Text>
       </View>
 
-      <ScrollView style={styles.messageList}>
-        {MESSAGES.map(message => (
-          <Pressable key={message.id} style={styles.messageCard}>
-            <Image source={{ uri: message.avatar }} style={styles.avatar} />
-            <View style={styles.messageContent}>
-              <View style={styles.messageHeader}>
-                <Text style={styles.senderName}>{message.sender}</Text>
-                <Text style={styles.messageTime}>{message.time}</Text>
-              </View>
-              <Text
-                style={[styles.messageText, message.unread && styles.unreadMessage]}
-                numberOfLines={1}
-              >
-                {message.message}
-              </Text>
-            </View>
-            {message.unread && <View style={styles.unreadDot} />}
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
+      {conversations.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No conversations yet</Text>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => router.push("/search-pet-sitter")}
+          >
+            <Text style={styles.searchButtonText}>Find Pet Sitters</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <LegendList
+          data={conversations}
+          renderItem={renderConversationItem}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={styles.listContainer}
+          estimatedItemSize={300}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -63,74 +201,114 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F9FAFB",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   header: {
-    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
     paddingTop: 60,
+    paddingBottom: 16,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "bold",
     color: "#111827",
   },
-  messageList: {
-    padding: 24,
+  listContainer: {
+    padding: 16,
   },
-  messageCard: {
+  conversationItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 16,
     padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  conversationItemUnread: {
+    backgroundColor: "#F3F4F6",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: 16,
   },
-  messageContent: {
+  conversationContent: {
     flex: 1,
   },
-  messageHeader: {
+  conversationHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
   },
-  senderName: {
+  personName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#111827",
   },
   messageTime: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#6B7280",
   },
-  messageText: {
+  lastMessage: {
     fontSize: 14,
+    color: "#4B5563",
+  },
+  unreadBadge: {
+    backgroundColor: "#FF6B6B",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  unreadText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  emptyText: {
+    fontSize: 16,
     color: "#6B7280",
+    marginBottom: 16,
   },
-  unreadMessage: {
-    color: "#111827",
-    fontWeight: "500",
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  searchButton: {
     backgroundColor: "#7C3AED",
-    marginLeft: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  searchButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
