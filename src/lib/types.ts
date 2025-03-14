@@ -41,6 +41,43 @@ export const petSitterSchema = z.object({
   rating: z.number().nullable(),
 });
 
+const conversationSchema = z.object({
+  id: z.string(),
+  owner_id: z.string(),
+  sitter_id: z.string(),
+  last_message: z.string().min(1),
+  created_at: z.string(),
+  owner: z
+    .object({
+      id: z.string(),
+      first_name: z.string(),
+      last_name: z.string(),
+      avatar_url: z.string().url(),
+    })
+    .nullable(),
+  sitter: z
+    .object({
+      id: z.string(),
+      first_name: z.string(),
+      last_name: z.string(),
+      avatar_url: z.string().url(),
+    })
+    .nullable(),
+});
+
+const messageSchema = z.object({
+  id: z.string(),
+  sender_id: z.string(),
+  recipient_id: z.string(),
+  content: z.string().min(1),
+  read: z.boolean(),
+  created_at: z.string(),
+  conversation_id: z.string(),
+});
+
+export type Message = z.infer<typeof messageSchema>;
+
+export type Conversation = z.infer<typeof conversationSchema>;
 // Inferred types from schemas
 export type Pet = z.infer<typeof petSchema>;
 export type NewPet = z.infer<typeof newPetSchema>;
@@ -130,3 +167,30 @@ export enum PET_TYPES {
   Exotic = "Exotic",
   Other = "Other",
 }
+
+// export type Message = {
+//   id: string;
+//   sender_id: string;
+//   recipient_id: string;
+//   content: string;
+//   read: boolean;
+//   conversation_id: string;
+//   created_at: string;
+// };
+
+export type UserProfile = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+};
+
+// export type Conversation = {
+//   id: string;
+//   owner_id: string;
+//   sitter_id: string;
+//   last_message: string | null;
+//   created_at: string;
+//   owner: UserProfile;
+//   sitter: UserProfile;
+// };
