@@ -4,6 +4,8 @@ import { ArrowLeft, MapPin, MessageCircle, Shield, Star } from "lucide-react-nat
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useAuth } from "@/src/context/AuthContext";
+import { supabase } from "@/src/lib/supabase";
 import { PetSitter } from "@/src/lib/types";
 
 const SITTER = {
@@ -52,11 +54,51 @@ const SITTER = {
 
 export default function SitterProfileScreen() {
   const { sitterData } = useLocalSearchParams();
+  const { user } = useAuth();
 
   const sitter: PetSitter = JSON.parse(sitterData as string);
 
-  const handleStartChat = () => {
-    // This will be implemented later
+  const handleStartChat = async () => {
+    try {
+      if (!user) return;
+
+      const { data: existingConversation, error: fetchError } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("owner_id", user.id)
+        .eq("sitter_id", sitter.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      let conversationId;
+
+      if (existingConversation) {
+        conversationId = existingConversation.id;
+      } else {
+        const { data: newConversation, error: createError } = await supabase
+          .from("conversations")
+          .insert({
+            owner_id: user.id,
+            sitter_id: sitter.id,
+            last_message: null,
+          })
+          .select("id")
+          .single();
+
+        if (createError) {
+          throw createError;
+        }
+
+        conversationId = newConversation.id;
+      }
+
+      router.push(`/chat/${conversationId}`);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleBook = () => {
