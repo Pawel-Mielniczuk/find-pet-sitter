@@ -12,101 +12,37 @@ import {
 } from "react-native";
 
 import { Conversation } from "@/src/lib/types";
+import { useChatStore } from "@/src/stores/chatStore";
 
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../lib/supabase";
 
 export default function MessagesScreen() {
   const { user } = useAuth();
-  const [loading, setLoading] = React.useState(true);
-  const [conversations, setConversations] = React.useState<Conversation[]>([]);
-  // const [unreadMessages, setUnreadMessages] = React.useState({});
-  const [unreadMessages, setUnreadMessages] = React.useState<{ [key: string]: number }>({});
+
+  const {
+    conversations,
+    unreadMessages,
+    conversationsLoading,
+    fetchConversationsData,
+    subscribeToConversationsList,
+    unsubscribeFromConversationsList,
+  } = useChatStore();
 
   React.useEffect(() => {
-    if (!user) return;
-
-    const fetchConversations = async () => {
-      try {
-        setLoading(true);
-
-        const { data, error } = await supabase
-          .from("conversations")
-          .select(
-            `
-            id, 
-            owner_id, 
-            sitter_id, 
-            last_message, 
-            created_at,
-            owner:profiles!owner_id(id, first_name, last_name, avatar_url),
-            sitter:profiles!sitter_id(id, first_name, last_name, avatar_url)
-          `,
-          )
-          .or(`owner_id.eq.${user.id},sitter_id.eq.${user.id}`)
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          throw error;
-        }
-
-        const updatedConversations = data.map(conversation => ({
-          ...conversation,
-          owner: Array.isArray(conversation.owner)
-            ? conversation.owner[0]
-            : conversation.owner || null,
-          sitter: Array.isArray(conversation.sitter)
-            ? conversation.sitter[0]
-            : conversation.sitter || null,
-        }));
-
-        setConversations(updatedConversations as Conversation[]);
-
-        const unreadMessagesMap: { [key: string]: number } = {};
-
-        for (const conversation of data) {
-          const { data: messages, error: messagesError } = await supabase
-            .from("messages")
-            .select("*")
-            .eq("conversation_id", conversation.id)
-            .eq("is_read", false);
-
-          if (messagesError) {
-            throw messagesError;
-          }
-
-          unreadMessagesMap[conversation.id] = messages.length;
-        }
-
-        setUnreadMessages(unreadMessagesMap);
-      } catch (error) {
-        throw error;
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchConversations();
-    const subscription = supabase
-      .channel("conversations_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "conversations",
-          filter: `owner_id=eq.${user.id},sitter_id=eq.${user.id}`,
-        },
-        () => {
-          fetchConversations();
-        },
-      )
-      .subscribe();
+    if (user) {
+      fetchConversationsData(user.id);
+      subscribeToConversationsList(user.id);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromConversationsList();
     };
-  }, [user]);
+  }, [
+    user,
+    fetchConversationsData,
+    subscribeToConversationsList,
+    unsubscribeFromConversationsList,
+  ]);
 
   const navigateToChat = (conversationId: string) => {
     router.push(`/chat/${conversationId}`);
@@ -159,7 +95,7 @@ export default function MessagesScreen() {
     );
   };
 
-  if (loading) {
+  if (conversationsLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7C3AED" />

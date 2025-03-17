@@ -1,6 +1,6 @@
 import { LegendList } from "@legendapp/list";
 import { Image } from "expo-image";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Send } from "lucide-react-native";
 import React from "react";
 import {
@@ -14,201 +14,58 @@ import {
   View,
 } from "react-native";
 
-import { Conversation, Message, UserProfile } from "@/src/lib/types";
+import { Message } from "@/src/lib/types";
+import { useChatStore } from "@/src/stores/chatStore";
 
 import { useAuth } from "../../../context/AuthContext";
-import { supabase } from "../../../lib/supabase";
 
 export default function ChatScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const [loading, setLoading] = React.useState<boolean>(true);
-  const [sending, setSending] = React.useState<boolean>(false);
-  const [messages, setMessages] = React.useState<Message[]>([]);
-  const [newMessage, setNewMessage] = React.useState<string>("");
-  const [conversation, setConversation] = React.useState<Conversation | null>(null);
-  const [otherUser, setOtherUser] = React.useState<UserProfile | null>(null);
   const flatListRef = React.useRef<React.ElementRef<typeof LegendList> | null>(null);
-  const [isDataFetched, _] = React.useState<boolean>(false);
 
-  async function fetchConversationData() {
-    try {
-      setLoading(true);
-
-      const { data: conversationData, error: conversationError } = await supabase
-        .from("conversations")
-        .select(
-          `
-          id,
-          owner_id,
-          sitter_id,
-          last_message,
-          created_at,
-          owner:profiles!owner_id(id, first_name, last_name, avatar_url),
-          sitter:profiles!sitter_id(id, first_name, last_name, avatar_url)
-        `,
-        )
-        .eq("id", conversationId)
-        .single();
-
-      if (conversationError) {
-        throw conversationError;
-      }
-
-      const parsedConversation: Conversation = {
-        ...conversationData,
-        owner: conversationData.owner.length > 0 ? conversationData.owner[0] : null,
-        sitter: conversationData.sitter.length > 0 ? conversationData.sitter[0] : null,
-      };
-      setConversation(parsedConversation);
-
-      if (!user) {
-        throw new Error("fetchConversationData: user is null");
-      }
-
-      const otherUser =
-        user.id === conversationData.owner_id
-          ? Array.isArray(conversationData.sitter)
-            ? conversationData.sitter[0] || null
-            : conversationData.sitter || null
-          : Array.isArray(conversationData.owner)
-            ? conversationData.owner[0] || null
-            : conversationData.owner || null;
-
-      setOtherUser(otherUser);
-
-      const { data: messagesData, error: messagesError } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
-
-      if (messagesError) {
-        return messagesError;
-      }
-
-      if (messagesData && messagesData.length > 0) {
-        const uniqueMessagesData = messagesData.filter(
-          (message, index, self) => index === self.findIndex(m => m.id === message.id),
-        );
-        setMessages(uniqueMessagesData);
-
-        const unreadMessages = uniqueMessagesData.filter(
-          msg => msg.recipient_id === user.id && !msg.read,
-        );
-
-        if (unreadMessages.length > 0) {
-          await supabase
-            .from("messages")
-            .update({ read: true })
-            .in(
-              "id",
-              unreadMessages.map(msg => msg.id),
-            );
-        }
-      } else {
-        setMessages([]);
-      }
-    } catch (error) {
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    conversation,
+    otherUser,
+    messages,
+    loading,
+    sending,
+    fetchConversationData,
+    subscribeToConversation,
+    unsubscribeFromConversation,
+    newMessage,
+    setNewMessage,
+    handleSendMessage,
+  } = useChatStore();
 
   React.useEffect(() => {
-    if (!conversationId || !user) return;
-
-    fetchConversationData();
-
-    const subscription = supabase
-      .channel(`conversation:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        payload => {
-          const newMessage = payload.new as Message;
-          if (newMessage && newMessage.id) {
-            setMessages(currentMessages => {
-              if (!currentMessages.some(msg => msg.id === newMessage.id)) {
-                return [...currentMessages, newMessage];
-              }
-              return currentMessages;
-            });
-          }
-
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        },
-      )
-      .subscribe();
+    if (conversationId && user) {
+      fetchConversationData(conversationId, user);
+      subscribeToConversation(conversationId, user);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeFromConversation();
     };
-  }, [conversationId, user]);
+  }, [
+    conversationId,
+    user,
+    fetchConversationData,
+    subscribeToConversation,
+    unsubscribeFromConversation,
+  ]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let isMounted = true;
+  React.useEffect(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
 
-      const fetchData = async () => {
-        try {
-          if (isMounted && !isDataFetched) {
-            await fetchConversationData();
-          }
-        } catch (error) {
-          throw error;
-        }
-      };
-
-      fetchData();
-
-      return () => {
-        isMounted = false;
-      };
-    }, []),
-  );
-
-  async function handleSendMessage() {
-    if (!newMessage.trim() || !conversation || !user || !otherUser) return;
-
-    try {
-      setSending(true);
-
-      const messageToSend = {
-        sender_id: user.id,
-        recipient_id: otherUser.id,
-        content: newMessage.trim(),
-        read: false,
-        conversation_id: conversationId,
-        created_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from("messages").insert(messageToSend).select("*").single();
-
-      if (error) {
-        return error;
-      }
-
-      await supabase
-        .from("conversations")
-        .update({ last_message: newMessage.trim() })
-        .eq("id", conversationId);
-
-      setNewMessage("");
-    } catch (error) {
-      throw error;
-    } finally {
-      setSending(false);
+  const onMessageSend = async () => {
+    if (conversationId && user && otherUser) {
+      await handleSendMessage(conversationId, user, otherUser);
     }
-  }
+  };
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isCurrentUser = item.sender_id === user?.id;
@@ -324,7 +181,7 @@ export default function ChatScreen() {
         />
         <TouchableOpacity
           style={[styles.sendButton, (!newMessage.trim() || sending) && styles.sendButtonDisabled]}
-          onPress={handleSendMessage}
+          onPress={onMessageSend}
           disabled={!newMessage.trim() || sending}
         >
           {sending ? (
