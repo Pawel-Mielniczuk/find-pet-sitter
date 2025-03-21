@@ -1,8 +1,9 @@
 import { EventSubscription } from "expo-modules-core";
 import * as Notifications from "expo-notifications";
-import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import React, { ReactNode } from "react";
 
 import { registerForPushNotificationsAsync } from "../lib/registerPushNotificationsAsync";
+import { useAuth } from "./AuthContext";
 
 interface NotificationContextType {
   expoPushToken: string | null;
@@ -10,10 +11,10 @@ interface NotificationContextType {
   error: Error | null;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = React.createContext<NotificationContextType | undefined>(undefined);
 
 export const useNotification = () => {
-  const context = useContext(NotificationContext);
+  const context = React.useContext(NotificationContext);
   if (context === undefined) {
     throw new Error("useNotification must be used within a NotificationProvider");
   }
@@ -25,26 +26,29 @@ interface NotificationProviderProps {
 }
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [notification, setNotification] = useState<Notifications.Notification | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const [expoPushToken, setExpoPushToken] = React.useState<string | null>(null);
+  const [notification, setNotification] = React.useState<Notifications.Notification | null>(null);
+  const [error, setError] = React.useState<Error | null>(null);
+  const { user } = useAuth();
 
-  const notificationListener = useRef<EventSubscription>();
-  const responseListener = useRef<EventSubscription>();
+  const notificationListener = React.useRef<EventSubscription>();
+  const responseListener = React.useRef<EventSubscription>();
 
-  useEffect(() => {
-    registerForPushNotificationsAsync().then(
-      token => setExpoPushToken(token),
-      error => setError(error),
-    );
+  React.useEffect(() => {
+    if (user) {
+      registerForPushNotificationsAsync(user.id).then(
+        token => setExpoPushToken(token),
+        error => setError(error),
+      );
+    }
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      // Handle the notification response here
-    });
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(
+      response => {},
+    );
 
     return () => {
       if (notificationListener.current) {
@@ -54,7 +58,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         Notifications.removeNotificationSubscription(responseListener.current);
       }
     };
-  }, []);
+  }, [user]);
 
   return (
     <NotificationContext.Provider value={{ expoPushToken, notification, error }}>

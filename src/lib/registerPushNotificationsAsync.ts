@@ -3,7 +3,9 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-export async function registerForPushNotificationsAsync() {
+import { supabase } from "./supabase";
+
+export async function registerForPushNotificationsAsync(userId?: string) {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "default",
@@ -35,11 +37,26 @@ export async function registerForPushNotificationsAsync() {
         })
       ).data;
 
+      if (userId) {
+        await sendPushTokenToSupabase(userId, pushTokenString);
+      }
+
       return pushTokenString;
     } catch (e: unknown) {
       throw new Error(`${e}`);
     }
   } else {
     throw new Error("Must use physical device for push notifications");
+  }
+}
+
+async function sendPushTokenToSupabase(userId: string, pushToken: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ expo_push_token: pushToken })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error("Error sending push token to Supabase");
   }
 }
