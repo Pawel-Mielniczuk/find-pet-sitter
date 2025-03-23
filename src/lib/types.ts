@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const petBehaviourSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
 // Pet schemas for validation
 export const petSchema = z.object({
   id: z.string(),
@@ -10,9 +15,9 @@ export const petSchema = z.object({
   image: z.string().url("Invalid image URL"),
   owner_id: z.string(),
   weight: z.string().optional(),
-  special_instructions: z.string().nullable().optional(),
   custom_type: z.string().nullable().optional(),
   created_at: z.string().or(z.date()),
+  special_instructions: z.array(petBehaviourSchema).optional(),
 });
 
 export const newPetSchema = z.object({
@@ -22,8 +27,11 @@ export const newPetSchema = z.object({
   age: z.string().min(1, "Age is required").default(""),
   image: z.string().url().default(""),
   weight: z.union([z.number().positive(), z.null()]).optional().default(null),
-  special_instructions: z.string().nullable().default(""),
+
   custom_type: z.string().nullable().default(""),
+  gender: z.string().nullable().default(""),
+
+  special_instructions: z.array(petBehaviourSchema).optional(),
 });
 
 export const petSitterSchema = z.object({
@@ -103,7 +111,7 @@ export type PetFormData = {
   age: string;
   image: string;
   weight: string;
-  special_instructions: string;
+  special_instructions: z.infer<typeof petBehaviourSchema>[];
   custom_type: string;
 };
 

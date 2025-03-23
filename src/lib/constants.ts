@@ -22,6 +22,6 @@ export const DEFAULT_PET_FORM: PetFormData = {
   age: "",
   image: DEFAULT_PET_IMAGE,
   weight: "",
-  special_instructions: "",
+  special_instructions: [],
   custom_type: "",
 };
