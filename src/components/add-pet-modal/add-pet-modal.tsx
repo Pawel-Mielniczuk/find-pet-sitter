@@ -110,7 +110,7 @@ export function AddPetModal() {
               />
             )}
 
-            <TextInput
+            {/* <TextInput
               label="Special Instructions (Optional)"
               placeholder="Any special care instructions for your pet"
               value={newPet.special_instructions ?? ""}
@@ -120,7 +120,7 @@ export function AddPetModal() {
               textAlignVertical="top"
               containerStyle={styles.textAreaContainer}
               style={styles.textArea}
-            />
+            /> */}
 
             <Button onPress={handleAddPet} loading={isLoading} style={styles.addPetButton}>
               Add Pet

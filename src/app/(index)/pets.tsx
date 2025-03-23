@@ -1,38 +1,36 @@
+import { Link } from "expo-router";
 import { PawPrint, Plus } from "lucide-react-native";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-import { AddPetModal } from "@/src/components/add-pet-modal/add-pet-modal";
+// import { AddPetModal } from "@/src/components/add-pet-modal/add-pet-modal";
 import { PetsList } from "@/src/components/pets-list/pets-list";
 import { usePets } from "@/src/context/PetsContext";
-import { PET_TYPES } from "@/src/lib/types";
 
+// import { PET_TYPES } from "@/src/lib/types";
 import { Button } from "../../components/button/Button";
-import { PetTypeModal } from "../../components/pet-type-modal/pet-type-modal";
+// import { PetTypeModal } from "../../components/pet-type-modal/pet-type-modal";
 
 export default function PetsScreen() {
-  const {
-    setModalVisible,
-    setTypeModalVisible,
-    setNewPet,
-    newPet,
-    pets,
-    isLoading,
-    typeModalVisible,
-  } = usePets();
+  const { pets, isLoading } = usePets();
 
-  const selectPetType = (type: string) => {
-    setNewPet({ ...newPet, type });
-    setTypeModalVisible(false);
-  };
+  // const selectPetType = (type: string) => {
+  //   setNewPet({ ...newPet, type });
+  //   setTypeModalVisible(false);
+  // };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Pets</Text>
-        <Pressable style={styles.addButton} onPress={() => setModalVisible(true)}>
+        {/* <Pressable style={styles.addButton} onPress={() => setModalVisible(true)}>
           <Plus size={24} color="#FFFFFF" />
-        </Pressable>
+        </Pressable> */}
+        <Link href={"/(index)/add-pet" as any} asChild>
+          <Pressable style={styles.addButton}>
+            <Plus size={24} color="#FFFFFF" />
+          </Pressable>
+        </Link>
       </View>
 
       {isLoading ? (
@@ -45,22 +43,22 @@ export default function PetsScreen() {
           <PawPrint size={64} color="#D1D5DB" />
           <Text style={styles.emptyTitle}>No pets yet</Text>
           <Text style={styles.emptyText}>Add your first pet by tapping the + button</Text>
-          <Button onPress={() => setModalVisible(true)} style={styles.emptyButton}>
+          {/* <Button onPress={() => setModalVisible(true)} style={styles.emptyButton}>
             Add a Pet
-          </Button>
+          </Button> */}
         </View>
       ) : (
         <PetsList pets={pets} />
       )}
 
-      <AddPetModal />
+      {/* <AddPetModal />
 
       <PetTypeModal
         visible={typeModalVisible}
         onClose={() => setTypeModalVisible(false)}
         onSelectType={selectPetType}
         petTypes={Object.values(PET_TYPES)}
-      />
+      /> */}
     </View>
   );
 }
