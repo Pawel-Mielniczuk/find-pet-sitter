@@ -113,7 +113,7 @@ export default function EditPetScreen() {
             />
           )}
 
-          <TextInput
+          {/* <TextInput
             label="Special Instructions (Optional)"
             placeholder="Any special care instructions for your pet"
             value={petForm.special_instructions}
@@ -123,7 +123,7 @@ export default function EditPetScreen() {
             textAlignVertical="top"
             containerStyle={styles.textAreaContainer}
             style={styles.textArea}
-          />
+          /> */}
 
           <View style={styles.buttonContainer}>
             <Button

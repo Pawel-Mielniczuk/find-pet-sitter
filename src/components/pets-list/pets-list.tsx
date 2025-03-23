@@ -58,7 +58,7 @@ export function PetsList({ pets }: PetsListProps) {
                 Weight: {pet.weight}
               </Text>
             )}
-            {pet.special_instructions && (
+            {/* {pet.special_instructions && (
               <Text
                 style={styles.specialInstructions}
                 numberOfLines={2}
@@ -66,7 +66,7 @@ export function PetsList({ pets }: PetsListProps) {
               >
                 Note: {pet.special_instructions}
               </Text>
-            )}
+            )} */}
           </View>
         </Link>
       )}

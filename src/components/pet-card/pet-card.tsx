@@ -70,7 +70,7 @@ export function PetCard({ pet }: PetCardProps) {
               <FileText size={20} color="#6B7280" testID="file-text" />
               <Text style={styles.instructionsTitle}>Special Instructions</Text>
             </View>
-            <Text style={styles.instructionsText}>{pet.special_instructions}</Text>
+            {/* <Text style={styles.instructionsText}>{pet.special_instructions}</Text> */}
           </View>
         )}
       </View>
