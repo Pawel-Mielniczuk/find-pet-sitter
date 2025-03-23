@@ -38,8 +38,9 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
     age: "",
     image: DEFAULT_PET_IMAGE,
     weight: null,
-    special_instructions: "",
     custom_type: "",
+    gender: "",
+    special_instructions: [],
   });
 
   const [petForm, setPetForm] = React.useState<PetFormData>(DEFAULT_PET_FORM);
@@ -72,10 +73,11 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
         age: "",
         image: DEFAULT_PET_IMAGE,
         weight: null,
-        special_instructions: "",
+        // special_instructions: "",
         custom_type: "",
+        gender: "",
       });
-      setModalVisible(false);
+      // setModalVisible(false);
 
       if (data && data.length > 0) {
         router.push({
@@ -121,6 +123,7 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
 
   const handleAddPet = async () => {
     const newErrors = validatePetData(newPet);
+
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) return;
@@ -136,11 +139,12 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
       age: newPet.age,
       image: newPet.image,
       owner_id: user.id,
-      special_instructions: newPet.special_instructions || null,
+
       custom_type: newPet.type === "Other" ? newPet.custom_type : null,
       weight: newPet.type === PET_TYPES.Dog && newPet.weight ? newPet.weight : null,
+      gender: newPet.gender,
+      special_instructions: newPet.special_instructions,
     };
-
     addPetMutation.mutate(petData);
   };
 
@@ -202,7 +206,7 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
       age: petData?.age || "",
       image: petData?.image || "",
       weight: petData?.weight || "",
-      special_instructions: petData?.special_instructions || "",
+      special_instructions: petData?.special_instructions ?? [],
       custom_type: petData?.custom_type || "",
     });
   };
