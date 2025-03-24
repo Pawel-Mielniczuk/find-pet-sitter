@@ -130,6 +130,10 @@ export type UpdatePetVariables = { petData: Partial<NewPet>; petId: string };
 // Image mapping type
 export type PetImageMap = Record<PetType | string, string>;
 
+type Breed = {
+  id: number;
+  name: string;
+};
 // Context types
 export type PetsContextType = {
   // Modal state
@@ -162,6 +166,14 @@ export type PetsContextType = {
   // Validation
   errors: ValidationErrors;
   setErrors: React.Dispatch<React.SetStateAction<ValidationErrors>>;
+
+  // Breed Selector functionality
+  selectedBreed: string | null;
+  filteredBreeds: Breed[];
+  handleSelect: (breed: string) => void;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  handleAddCustomBreed: () => void;
 };
 
 export enum PET_TYPES {

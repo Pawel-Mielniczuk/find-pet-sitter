@@ -18,6 +18,48 @@ import {
 } from "../lib/types";
 import { useAuth } from "./AuthContext";
 
+const DOG_BREEDS: Breed[] = [
+  { id: 1, name: "German Shepherd" },
+  { id: 2, name: "Labrador Retriever" },
+  { id: 3, name: "Golden Retriever" },
+  { id: 4, name: "Dachshund" },
+  { id: 5, name: "Jack Russell Terrier" },
+  { id: 6, name: "Schnauzer" },
+  { id: 7, name: "French Bulldog" },
+  { id: 8, name: "Beagle" },
+  { id: 9, name: "Border Collie" },
+  { id: 10, name: "Chihuahua" },
+  { id: 11, name: "Siberian Husky" },
+  { id: 12, name: "Shih Tzu" },
+  { id: 13, name: "Cocker Spaniel" },
+  { id: 14, name: "Boxer" },
+  { id: 15, name: "Bernese Mountain Dog" },
+  { id: 16, name: "Yorkshire Terrier" },
+  { id: 17, name: "Dalmatian" },
+  { id: 18, name: "Poodle" },
+  { id: 19, name: "West Highland White Terrier" },
+  { id: 20, name: "Mixed Breed (Kundelek)" },
+];
+
+const CAT_BREEDS: Breed[] = [
+  { id: 1, name: "British Shorthair" },
+  { id: 2, name: "Maine Coon" },
+  { id: 3, name: "Siberian Cat" },
+  { id: 4, name: "Persian Cat" },
+  { id: 5, name: "Ragdoll" },
+  { id: 6, name: "Bengal Cat" },
+  { id: 7, name: "Sphynx" },
+  { id: 8, name: "Russian Blue" },
+  { id: 9, name: "Norwegian Forest Cat" },
+  { id: 10, name: "Scottish Fold" },
+  { id: 11, name: "Mixed Breed (Dachowiec)" },
+];
+
+type Breed = {
+  id: number;
+  name: string;
+};
+
 const getPetImageByType = (type: string): string => {
   return PET_IMAGES[type as keyof typeof PET_IMAGES] || PET_IMAGES.Other;
 };
@@ -45,6 +87,60 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
 
   const [petForm, setPetForm] = React.useState<PetFormData>(DEFAULT_PET_FORM);
   const [errors, setErrors] = React.useState<ValidationErrors>({});
+  const [selectedBreed, setSelectedBreed] = React.useState<string | null>(null);
+  const [customBreeds, setCustomBreeds] = React.useState<Breed[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const breeds = React.useMemo(() => {
+    return newPet.type === "Dog" ? DOG_BREEDS : newPet.type === "Cat" ? CAT_BREEDS : [];
+  }, [newPet.type]);
+
+  const sortBreeds = (breeds: Breed[], selectedBreed: string | null): Breed[] => {
+    if (!selectedBreed) {
+      return breeds.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    const selectedBreedItem = breeds.find(breed => breed.name === selectedBreed);
+    const otherBreeds = breeds
+      .filter(breed => breed.name !== selectedBreed)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return selectedBreedItem ? [selectedBreedItem, ...otherBreeds] : otherBreeds;
+  };
+
+  const filteredBreeds = React.useMemo(() => {
+    const allBreeds = sortBreeds([...breeds, ...customBreeds], selectedBreed);
+    return allBreeds.filter(breed => breed.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [breeds, customBreeds, searchQuery, selectedBreed]);
+
+  const handleSelect = (breed: string) => {
+    setSelectedBreed(breed);
+    setNewPet(prev => ({ ...prev, breed }));
+    setModalVisible(false);
+    setSearchQuery("");
+  };
+
+  const handleAddCustomBreed = () => {
+    const trimmedBreed = newPet.breed.trim();
+    if (trimmedBreed !== "") {
+      const newBreed = { id: Date.now(), name: trimmedBreed };
+      setCustomBreeds(prevCustomBreeds => [...prevCustomBreeds, newBreed]);
+      setSelectedBreed(trimmedBreed);
+      setModalVisible(false);
+      setSearchQuery("");
+    } else {
+      Alert.alert("Please enter a breed name.");
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedBreed && !breeds.some(breed => breed.name === selectedBreed)) {
+      setCustomBreeds(prevCustomBreeds => [
+        ...prevCustomBreeds,
+        { id: Date.now(), name: selectedBreed },
+      ]);
+    }
+  }, [selectedBreed]);
 
   React.useEffect(() => {
     if (newPet.type) {
@@ -73,11 +169,10 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
         age: "",
         image: DEFAULT_PET_IMAGE,
         weight: null,
-        // special_instructions: "",
+        special_instructions: [],
         custom_type: "",
         gender: "",
       });
-      // setModalVisible(false);
 
       if (data && data.length > 0) {
         router.push({
@@ -150,6 +245,7 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
 
   const handleUpdatePet = async (id: string) => {
     const newErrors = validatePetData(petForm);
+
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0 || !id) return;
@@ -239,6 +335,12 @@ export function PetsProvider({ children }: { children: React.ReactNode }) {
     isUpdating,
     initializePetForm,
     selectPetType,
+    selectedBreed,
+    filteredBreeds,
+    handleSelect,
+    searchQuery,
+    setSearchQuery,
+    handleAddCustomBreed,
   };
   return <PetsContext.Provider value={values}>{children}</PetsContext.Provider>;
 }
