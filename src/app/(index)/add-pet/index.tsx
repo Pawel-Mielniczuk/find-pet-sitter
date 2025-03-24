@@ -1,7 +1,9 @@
-import { Link, router } from "expo-router";
-import { Cat, Dog, Mars, Plus, Turtle, Venus } from "lucide-react-native";
+import { router } from "expo-router";
+import { Cat, Dog, Mars, Turtle, Venus } from "lucide-react-native";
 import React, { ReactNode } from "react";
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
+import { BreedSelector } from "@/src/components/breed-selector/breed-selector";
 
 import { Button } from "../../../components/button/Button";
 import { ImageInput } from "../../../components/image-input/image-input";
@@ -100,13 +102,41 @@ export default function AddPet() {
           error={errors.name}
         />
 
-        <TextInput
+        {(newPet.type === "Dog" || newPet.type === "Cat") && <BreedSelector />}
+
+        {newPet.type === "Other" && (
+          <TextInput
+            label="Breed"
+            placeholder="Enter your pet's breed"
+            value={newPet.breed}
+            onChangeText={text => setNewPet({ ...newPet, breed: text })}
+            error={errors.breed}
+          />
+        )}
+
+        {/* <TextInput
           label="Breed"
           placeholder="Enter your pet's breed"
           value={newPet.breed}
           onChangeText={text => setNewPet({ ...newPet, breed: text })}
           error={errors.breed}
-        />
+        /> */}
+        {newPet.type === "Dog" && (
+          <TextInput
+            label="Weight (kg)"
+            placeholder="Enter your dog's weight"
+            keyboardType="numeric"
+            value={newPet.weight !== null ? newPet.weight.toString() : ""}
+            onChangeText={text => {
+              const weightNum = text ? parseFloat(text) : null;
+              setNewPet({
+                ...newPet,
+                weight: !isNaN(weightNum as number) && weightNum! > 0 ? weightNum : null,
+              });
+            }}
+            maxLength={2}
+          />
+        )}
         <TextInput
           label="Age"
           placeholder="Enter your pet's age (e.g., 2 years)"
